@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Entrée de scores — Marqueur</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --green:#1a5c2a;--green-b:#3aaa50;--orange:#FF8C00;
+  --navy:#0f1923;--navy-m:#1a2535;--navy-l:#243040;
+  --white:#fff;--gray:#8a9aaa;--gray-l:#c8d4dc;--red:#e74c3c;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;font-family:'Barlow',sans-serif;background:var(--navy);color:var(--white);}
+
+/* PIN SCREEN */
+.pin-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--navy);}
+.pin-box{width:100%;max-width:320px;background:var(--navy-m);border:1px solid #ffffff15;border-top:4px solid var(--orange);padding:28px 24px;border-radius:6px;}
+.pin-logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green-b);letter-spacing:1px;margin-bottom:4px;}
+.pin-logo span{color:var(--orange);}
+.pin-subtitle{font-size:12px;color:var(--gray);margin-bottom:24px;letter-spacing:.5px;}
+.pin-label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:8px;}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:20px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#ffffff15;transition:background .15s;}
+.pin-dot.filled{background:var(--orange);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.key{background:var(--navy-l);border:1px solid #ffffff10;border-radius:6px;padding:16px;font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--white);text-align:center;cursor:pointer;transition:background .1s,transform .1s;user-select:none;}
+.key:active{background:var(--green);transform:scale(.95);}
+.key.del{font-size:18px;color:var(--gray);}
+.key.del:active{background:var(--red);}
+.key.empty{background:transparent;border-color:transparent;cursor:default;}
+.pin-err{color:var(--red);font-size:12px;text-align:center;margin-top:10px;min-height:18px;}
+.pin-surface-row{margin-bottom:16px;}
+.pin-surface-row label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;display:block;margin-bottom:6px;}
+.pin-surface-row select{width:100%;background:var(--navy-l);border:1px solid #ffffff14;color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;padding:10px 12px;border-radius:4px;outline:none;}
+.pin-surface-row select option{background:var(--navy-m);}
+
+/* SCORER APP */
+.scorer-app{display:none;min-height:100vh;background:var(--navy);}
+
+/* TOP BAR */
+.sbar{background:var(--navy-m);border-bottom:2px solid var(--green);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.sbar-logo{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:var(--green-b);}
+.sbar-surf{font-size:11px;color:var(--orange);font-weight:600;letter-spacing:1px;}
+.sbar-exit{background:none;border:1px solid #ffffff20;color:var(--gray);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;border-radius:3px;cursor:pointer;}
+.sbar-exit:hover{border-color:var(--red);color:var(--red);}
+
+/* MATCH LIST */
+.match-sections{padding:12px;}
+.section-head{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid #ffffff10;}
+.mcard{background:var(--navy-m);border:1px solid #ffffff0d;border-radius:6px;padding:14px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
+.mcard:active{background:var(--navy-l);}
+.mcard.done{border-left:4px solid var(--green-b);}
+.mcard.mine{border-left:4px solid var(--orange);}
+.mcard.pending-mine{border:2px solid var(--orange);animation:glow .8s ease infinite alternate;}
+@keyframes glow{from{border-color:#FF8C0060}to{border-color:var(--orange)}}
+.mc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.mc-time{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--orange);}
+.mc-round{font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:2px;text-transform:uppercase;}
+.rnd-H{background:#1a3a22;color:#3aaa50;}
+.rnd-F{background:#3a1a30;color:#d870b0;}
+.rnd-M{background:#1a2a40;color:#5090df;}
+.mc-teams{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.mc-team{font-size:15px;font-weight:600;color:var(--white);flex:1;}
+.mc-team.a{text-align:right;}
+.mc-team.b{text-align:left;}
+.mc-score-display{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green-b);text-align:center;min-width:54px;}
+.mc-score-display.tbd{font-size:13px;color:var(--gray);font-style:italic;font-family:'Barlow',sans-serif;font-weight:400;}
+.mc-surface{font-size:10px;color:var(--gray);margin-top:5px;}
+.done-badge{position:absolute;top:8px;right:8px;font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:10px;background:#1a3a22;color:var(--green-b);text-transform:uppercase;}
+
+/* SCORE ENTRY MODAL */
+.score-modal{display:none;position:fixed;inset:0;background:#000000cc;z-index:100;align-items:flex-end;justify-content:center;}
+.score-modal.open{display:flex;}
+.score-sheet{background:var(--navy-m);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 20px 32px;}
+.sm-handle{width:36px;height:4px;border-radius:2px;background:#ffffff20;margin:0 auto 18px;}
+.sm-header{text-align:center;margin-bottom:18px;}
+.sm-round{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:4px;}
+.sm-teams{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--gray-l);}
+.score-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:20px;}
+.score-team-label{font-size:13px;font-weight:600;color:var(--white);text-align:center;margin-bottom:8px;}
+.score-counter{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.score-num{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:900;color:var(--white);line-height:1;min-width:60px;text-align:center;}
+.score-btn{width:52px;height:52px;border-radius:50%;border:none;font-size:24px;font-weight:700;cursor:pointer;transition:transform .1s,background .1s;display:flex;align-items:center;justify-content:center;}
+.score-btn:active{transform:scale(.9);}
+.score-btn.plus{background:var(--green);color:#fff;}
+.score-btn.plus:active{background:var(--green-b);}
+.score-btn.minus{background:var(--navy-l);color:var(--gray-l);border:1px solid #ffffff15;}
+.score-btn.minus:active{background:var(--red);}
+.score-sep{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--gray);text-align:center;}
+.sm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sm-btn{padding:14px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border:none;cursor:pointer;transition:all .15s;}
+.sm-btn.confirm{background:var(--green);color:#fff;}
+.sm-btn.confirm:active{background:var(--green-b);}
+.sm-btn.cancel{background:var(--navy-l);color:var(--gray-l);}
+.sm-btn.cancel:active{background:#ffffff15;}
+.sm-warning{font-size:12px;color:var(--orange);text-align:center;margin-top:10px;}
+
+/* SUCCESS TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--green-b);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;padding:10px 22px;border-radius:6px;z-index:200;transition:transform .3s;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* LOADING */
+.loading-msg{text-align:center;padding:40px;color:var(--gray);font-size:13px;letter-spacing:1.5px;}
+.empty-msg{text-align:center;padding:30px;color:var(--gray);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,doc,onSnapshot,updateDoc,query,orderBy,getDoc,setDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyDGBE023kiEjrGc4WQlSe5q3Ol-BIa_0ho",authDomain:"tournoi-desjardins.firebaseapp.com",projectId:"tournoi-desjardins",storageBucket:"tournoi-desjardins.firebasestorage.app",messagingSenderId:"160553375472",appId:"1:160553375472:web:dbeeb9811dfa9020fa5435"};
+const app=initializeApp(cfg);
+const db=getFirestore(app);
+window._db=db;
+window._F={collection,doc,onSnapshot,updateDoc,query,orderBy,getDoc,setDoc};
+window.dispatchEvent(new Event('fbReady'));
+</script>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-box">
+    <div class="pin-logo">🏒 DESJAR<span>DINS</span></div>
+    <div class="pin-subtitle">Accès marqueur — Tournoi 2026</div>
+
+    <div class="pin-surface-row">
+      <label>Votre surface</label>
+      <select id="pinSurface">
+        <option value="">Chargement...</option>
+      </select>
+    </div>
+
+    <div class="pin-label">Code PIN marqueur</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+
+    <div class="pin-keypad">
+      <div class="key" onclick="pinKey('1')">1</div>
+      <div class="key" onclick="pinKey('2')">2</div>
+      <div class="key" onclick="pinKey('3')">3</div>
+      <div class="key" onclick="pinKey('4')">4</div>
+      <div class="key" onclick="pinKey('5')">5</div>
+      <div class="key" onclick="pinKey('6')">6</div>
+      <div class="key" onclick="pinKey('7')">7</div>
+      <div class="key" onclick="pinKey('8')">8</div>
+      <div class="key" onclick="pinKey('9')">9</div>
+      <div class="key empty"></div>
+      <div class="key" onclick="pinKey('0')">0</div>
+      <div class="key del" onclick="pinDel()">⌫</div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+<!-- SCORER APP -->
+<div class="scorer-app" id="scorerApp">
+  <div class="sbar">
+    <div>
+      <div class="sbar-logo">🏒 MARQUEUR</div>
+      <div class="sbar-surf" id="sbarSurf">–</div>
+    </div>
+    <button class="sbar-exit" onclick="exitScorer()">✕ Quitter</button>
+  </div>
+  <div class="match-sections" id="matchSections">
+    <div class="loading-msg">Chargement des matchs...</div>
+  </div>
+</div>
+
+<!-- SCORE ENTRY MODAL -->
+<div class="score-modal" id="scoreModal">
+  <div class="score-sheet">
+    <div class="sm-handle"></div>
+    <div class="sm-header">
+      <div class="sm-round" id="smRound"></div>
+      <div class="sm-teams" id="smTeams"></div>
+    </div>
+    <div class="score-row">
+      <div class="score-counter">
+        <div class="score-team-label" id="smLabelA"></div>
+        <button class="score-btn plus" onclick="adj('A',1)">+</button>
+        <div class="score-num" id="smNumA">0</div>
+        <button class="score-btn minus" onclick="adj('A',-1)">–</button>
+      </div>
+      <div class="score-sep">–</div>
+      <div class="score-counter">
+        <div class="score-team-label" id="smLabelB"></div>
+        <button class="score-btn plus" onclick="adj('B',1)">+</button>
+        <div class="score-num" id="smNumB">0</div>
+        <button class="score-btn minus" onclick="adj('B',-1)">–</button>
+      </div>
+    </div>
+    <div class="sm-actions">
+      <button class="sm-btn cancel" onclick="closeScoreModal()">Annuler</button>
+      <button class="sm-btn confirm" onclick="confirmScore()">✓ Confirmer</button>
+    </div>
+    <div class="sm-warning" id="smWarning"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Score enregistré!</div>
+
+<script>
+const SCORER_PIN='1234'; // ← change this PIN / configurable in Firebase
+let pinBuffer='';
+let mySurface='';
+let matches=[];
+let editMatchId=null,scoreA=0,scoreB=0;
+
+// ── PIN ──
+function pinKey(k){
+  if(pinBuffer.length>=4)return;
+  pinBuffer+=k;
+  updateDots();
+  if(pinBuffer.length===4)setTimeout(checkPin,200);
+}
+function pinDel(){pinBuffer=pinBuffer.slice(0,-1);updateDots();document.getElementById('pinErr').textContent='';}
+function updateDots(){
+  for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinBuffer.length);
+}
+async function checkPin(){
+  // Try Firebase pin first, fallback to hardcoded
+  let pin=SCORER_PIN;
+  try{
+    const snap=await window._F.getDoc(window._F.doc(window._db,'config','settings'));
+    if(snap.exists()&&snap.data().scorerPin) pin=snap.data().scorerPin;
+  }catch(e){}
+
+  if(pinBuffer===pin){
+    const surf=document.getElementById('pinSurface').value;
+    if(!surf){document.getElementById('pinErr').textContent='Choisissez votre surface.';pinBuffer='';updateDots();return;}
+    mySurface=surf;
+    document.getElementById('pinScreen').style.display='none';
+    document.getElementById('scorerApp').style.display='block';
+    document.getElementById('sbarSurf').textContent=surf;
+    loadMatchesForScorer();
+  } else {
+    document.getElementById('pinErr').textContent='Code PIN incorrect.';
+    pinBuffer='';updateDots();
+  }
+}
+function exitScorer(){
+  document.getElementById('scorerApp').style.display='none';
+  document.getElementById('pinScreen').style.display='flex';
+  pinBuffer='';updateDots();
+  document.getElementById('pinErr').textContent='';
+}
+
+// ── FIREBASE ──
+window.addEventListener('fbReady',()=>{
+  const db=window._db,F=window._F;
+  // Load surfaces for dropdown
+  F.onSnapshot(F.query(F.collection(db,'matches'),F.orderBy('sortKey')),snap=>{
+    const all=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const surfs=[...new Set(all.map(m=>m.field).filter(Boolean))].sort();
+    const sel=document.getElementById('pinSurface');
+    const prev=sel.value;
+    sel.innerHTML='<option value="">Choisir ma surface...</option>'+surfs.map(s=>`<option value="${s}">${s}</option>`).join('');
+    if(prev)sel.value=prev;
+  });
+
+  // Load scoring config
+  F.onSnapshot(F.doc(db,'config','scoring'),snap=>{
+    if(snap.exists())window._scoring=snap.data();
+  });
+});
+
+function loadMatchesForScorer(){
+  const F=window._F,db=window._db;
+  F.onSnapshot(F.query(F.collection(db,'matches'),F.orderBy('sortKey')),snap=>{
+    matches=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderScorerMatches();
+  });
+}
+
+// ── RENDER MATCHES ──
+function renderScorerMatches(){
+  const mine=matches.filter(m=>m.field===mySurface&&m.teamB);
+  const pending=mine.filter(m=>m.scoreA==null||m.scoreB==null);
+  const done=mine.filter(m=>m.scoreA!=null&&m.scoreB!=null);
+
+  let h='';
+
+  if(!mine.length){
+    document.getElementById('matchSections').innerHTML='<div class="empty-msg">Aucun match assigné à cette surface pour le moment.</div>';
+    return;
+  }
+
+  if(pending.length){
+    h+=`<div class="section-head">À compléter (${pending.length})</div>`;
+    h+=pending.map(m=>scoreCard(m,false)).join('');
+  }
+  if(done.length){
+    h+=`<div class="section-head">Complétés (${done.length})</div>`;
+    h+=done.map(m=>scoreCard(m,true)).join('');
+  }
+  document.getElementById('matchSections').innerHTML=h;
+}
+function scoreCard(m,isDone){
+  const catShort=m.cat?.includes('F')?'F':m.cat?.includes('M')?'M':'H';
+  const score=isDone?`<div class="mc-score-display">${m.scoreA}–${m.scoreB}</div>`
+    :`<div class="mc-score-display tbd">Entrer</div>`;
+  return`<div class="mcard ${isDone?'done':''}" onclick="${isDone?`editMatch('${m.id}')`:`openScore('${m.id}')`}">
+    ${isDone?`<div class="done-badge">✓ Complété</div>`:''}
+    <div class="mc-header">
+      <div class="mc-time">${m.time||'–'} · ${m.field||'–'}</div>
+      <span class="mc-round rnd-${catShort}">${m.round||'Ronde 1'}</span>
+    </div>
+    <div class="mc-teams">
+      <div class="mc-team a">${m.teamA}</div>
+      ${score}
+      <div class="mc-team b">${m.teamB}</div>
+    </div>
+  </div>`;
+}
+
+// ── SCORE MODAL ──
+function openScore(id){
+  const m=matches.find(x=>x.id===id);if(!m)return;
+  editMatchId=id;
+  scoreA=m.scoreA||0;scoreB=m.scoreB||0;
+  document.getElementById('smRound').textContent=`${m.round||'Ronde 1'} · ${m.field||''}`;
+  document.getElementById('smTeams').textContent=`${m.teamA} vs ${m.teamB}`;
+  document.getElementById('smLabelA').textContent=m.teamA;
+  document.getElementById('smLabelB').textContent=m.teamB;
+  document.getElementById('smNumA').textContent=scoreA;
+  document.getElementById('smNumB').textContent=scoreB;
+  document.getElementById('smWarning').textContent='';
+  document.getElementById('scoreModal').classList.add('open');
+}
+function editMatch(id){
+  openScore(id);
+  document.getElementById('smWarning').textContent='Modification d\'un score existant.';
+}
+function closeScoreModal(){document.getElementById('scoreModal').classList.remove('open');}
+function adj(team,delta){
+  if(team==='A'){scoreA=Math.max(0,scoreA+delta);document.getElementById('smNumA').textContent=scoreA;}
+  else{scoreB=Math.max(0,scoreB+delta);document.getElementById('smNumB').textContent=scoreB;}
+}
+async function confirmScore(){
+  const F=window._F,db=window._db;
+  try{
+    await F.updateDoc(F.doc(db,'matches',editMatchId),{
+      scoreA,scoreB,
+      playedAt:Date.now(),
+      scoredBy:mySurface
+    });
+    closeScoreModal();
+    showToast('✓ Score enregistré!');
+  }catch(e){
+    document.getElementById('smWarning').textContent='Erreur de connexion. Réessaie.';
+  }
+}
+document.getElementById('scoreModal').addEventListener('click',function(e){if(e.target===this)closeScoreModal();});
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
