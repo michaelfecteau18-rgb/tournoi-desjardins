@@ -165,6 +165,10 @@ window.dispatchEvent(new Event('fbReady'));
   <button class="btn bp" onclick="pushFB()" id="pushBtn">🔥 Publier</button>
   <button class="btn bo" onclick="saveLocal()" id="saveBtn">💾 Local</button>
   <button class="btn bs" onclick="openExport()">📋 Export</button>
+  <button class="btn" style="background:none;color:#64b5f6;border-color:#64b5f644" onclick="openCaptainPDF()">📄 PDF Capitaines</button>
+  <div class="tsep"></div>
+  <button class="btn" style="background:none;color:var(--orange);border-color:#FF8C0044" onclick="resetScoresOnly()">↺ Scores</button>
+  <button class="btn" style="background:none;color:var(--red-l);border-color:#c0392b44" onclick="resetTournament()" id="resetBtn">⚠ Reset tournoi</button>
   <div class="sbar" id="sbar"><span class="swarn">Connexion Firebase...</span></div>
 </div>
 
@@ -638,6 +642,179 @@ function autoSchedule(){
   rebuildGrid();
 }
 function clearMatches(){if(confirm('Effacer tous les matchs réguliers?')){matches=[];rebuildGrid();}}
+
+// ═══════════════════════════════════════════
+// RESET TOURNAMENT
+// ═══════════════════════════════════════════
+async function resetTournament(){
+  const confirmed=prompt('ATTENTION: Efface TOUT sur Firebase ET en local.\n\nTapez "RESET" pour confirmer:');
+  if(confirmed!=='RESET'){alert('Annulé.');return;}
+  const btn=document.getElementById('resetBtn');
+  const orig=btn.textContent;btn.textContent='⏳...';btn.disabled=true;
+  try{
+    if(fbReady){
+      await new Promise(res=>{
+        const unsub=_F.onSnapshot(_F.query(_F.collection(_db,'matches'),_F.orderBy('sortKey')),async snap=>{
+          unsub();
+          for(const d of snap.docs) await _F.deleteDoc(_F.doc(_db,'matches',d.id));
+          res();
+        });
+      });
+    }
+    matches=[];playoffs=[];
+    localStorage.removeItem('td_s5');
+    rebuildGrid();
+    btn.textContent='✓ Reset!';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2500);
+  }catch(e){btn.textContent='✗ Erreur';btn.disabled=false;alert('Erreur: '+e.message);}
+}
+
+async function resetScoresOnly(){
+  if(!confirm('Effacer tous les scores seulement? (horaire conservé)'))return;
+  matches.forEach(m=>{m.scoreA=null;m.scoreB=null;m.playedAt=null;});
+  playoffs.forEach(p=>{p.scoreA=null;p.scoreB=null;});
+  if(fbReady){
+    const slots=getSlots();
+    for(const m of matches.filter(x=>x.teamB)){
+      const sl=slots[m.idx];const sf=surfaces.find(s=>s.id===m.sid);
+      await _F.setDoc(_F.doc(_db,'matches',m.id),{teamA:m.teamA,teamB:m.teamB,cat:m.cat,round:m.round||'Ronde 1',time:sl?.label||'–',field:sf?.name||'–',scoreA:null,scoreB:null,playedAt:null,sortKey:`${sl?.label||'00h00'}-${sf?.name||''}`,isPlayoff:false});
+    }
+    for(const p of playoffs){
+      const sl=slots[p.idx];const sf=surfaces.find(s=>s.id===p.sid);
+      const pt=PO_TYPES.find(t=>t.t===p.type);
+      await _F.setDoc(_F.doc(_db,'matches',p.id),{teamA:p.teamA||'',teamB:p.teamB||'',cat:p.cat,round:pt?.label||p.type,time:sl?.label||'–',field:sf?.name||'–',scoreA:null,scoreB:null,playedAt:null,sortKey:`${sl?.label||'99h00'}-${sf?.name||''}`,isPlayoff:true,playoffType:p.type});
+    }
+  }
+  rebuildGrid();alert('✓ Scores effacés — horaire conservé.');
+}
+
+// ═══════════════════════════════════════════
+// PDF PAR CAPITAINE
+// ═══════════════════════════════════════════
+function openCaptainPDF(){
+  const slots=getSlots();
+  const allTeams=[...new Set([
+    ...matches.filter(m=>m.teamB).flatMap(m=>[m.teamA,m.teamB]),
+    ...playoffs.filter(p=>p.teamA||p.teamB).flatMap(p=>[p.teamA,p.teamB])
+  ])].filter(t=>t&&t.trim()).sort();
+
+  if(!allTeams.length){alert('Aucune équipe dans l\'horaire. Publiez d\'abord.');return;}
+
+  const ptWin=+document.getElementById('ptWin').value||2;
+  const ptTie=+document.getElementById('ptTie').value||1;
+  const ptLoss=+document.getElementById('ptLoss').value||0;
+  const w=window.open('','_blank');
+
+  let html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+<title>Horaires capitaines — Tournoi Desjardins 2026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;font-size:12px;}
+.page{width:100%;max-width:680px;margin:0 auto;padding:22px 26px;page-break-after:always;}
+.page:last-child{page-break-after:avoid;}
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1a5c2a;padding-bottom:10px;margin-bottom:16px;}
+.hdr-logo{font-size:20px;font-weight:900;color:#1a5c2a;letter-spacing:1px;}
+.hdr-logo span{color:#FF8C00;}
+.hdr-sub{font-size:9px;color:#777;margin-top:2px;}
+.hdr-right{text-align:right;font-size:9px;color:#888;}
+.team-name{font-size:19px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.cat-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 9px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;}
+.cat-H{background:#e8f5ed;color:#1a5c2a;}.cat-F{background:#fce8f5;color:#8b1a5c;}.cat-M{background:#e8eef8;color:#1a3a8b;}
+.stats{display:flex;gap:16px;background:#f5f9f5;border:1px solid #c8e6c9;border-radius:5px;padding:9px 14px;margin-bottom:14px;}
+.stat{text-align:center;}
+.stat-n{font-size:18px;font-weight:900;color:#1a5c2a;}
+.stat-l{font-size:8px;color:#666;text-transform:uppercase;letter-spacing:.5px;}
+.stat-n.orange{color:#FF8C00;}
+table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+thead tr{background:#1a5c2a;}
+thead th{color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 9px;text-align:left;}
+tbody tr{border-bottom:1px solid #ececec;}
+tbody tr:nth-child(even){background:#fafafa;}
+tbody tr.playoff-row{background:#fffbf0;}
+tbody td{padding:8px 9px;font-size:12px;vertical-align:middle;}
+.time{font-weight:700;color:#1a5c2a;font-size:13px;white-space:nowrap;}
+.surf{color:#666;}
+.rnd{font-size:10px;color:#888;}
+.opp{font-weight:600;}
+.pbadge{display:inline-block;font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;background:#fff3cd;color:#856404;}
+.res{font-weight:700;font-size:12px;text-align:center;white-space:nowrap;}
+.res.win{color:#1a5c2a;}.res.loss{color:#c0392b;}.res.tie{color:#FF8C00;}.res.tbd{color:#bbb;font-weight:400;font-style:italic;font-size:11px;}
+.footer{margin-top:14px;font-size:9px;color:#bbb;border-top:1px solid #eee;padding-top:7px;display:flex;justify-content:space-between;}
+@media print{body{font-size:11px;}.page{padding:14px 18px;}@page{size:letter;margin:0.4in;}}
+</style></head><body>`;
+
+  allTeams.forEach(teamName=>{
+    const teamGames=[
+      ...matches.filter(m=>m.teamB&&(m.teamA===teamName||m.teamB===teamName)).map(m=>({
+        idx:m.idx,sid:m.sid,round:m.round||'Ronde 1',cat:m.cat,isPlayoff:false,
+        opponent:m.teamA===teamName?m.teamB:m.teamA,
+        myScore:m.teamA===teamName?m.scoreA:m.scoreB,
+        oppScore:m.teamA===teamName?m.scoreB:m.scoreA,
+      })),
+      ...playoffs.filter(p=>(p.teamA===teamName||p.teamB===teamName)).map(p=>({
+        idx:p.idx,sid:p.sid,cat:p.cat,isPlayoff:true,
+        round:PO_TYPES.find(t=>t.t===p.type)?.label||p.type,
+        opponent:p.teamA===teamName?(p.teamB||'À déterminer'):(p.teamA||'À déterminer'),
+        myScore:p.teamA===teamName?p.scoreA:p.scoreB,
+        oppScore:p.teamA===teamName?p.scoreB:p.scoreA,
+      }))
+    ].sort((a,b)=>a.idx-b.idx);
+
+    if(!teamGames.length)return;
+
+    const firstCat=CATM[teamGames[0]?.cat];
+    const genre=firstCat?.g||'H';
+    const catLabel=firstCat?.label||teamGames[0]?.cat||'';
+
+    const played=teamGames.filter(g=>!g.isPlayoff&&g.myScore!=null&&g.oppScore!=null);
+    let wins=0,losses=0,ties=0,gf=0,ga=0;
+    played.forEach(g=>{gf+=g.myScore||0;ga+=g.oppScore||0;if(g.myScore>g.oppScore)wins++;else if(g.myScore<g.oppScore)losses++;else ties++;});
+    const pts=wins*ptWin+ties*ptTie+losses*ptLoss;
+
+    html+=`<div class="page">
+<div class="hdr">
+  <div><div class="hdr-logo">DESJAR<span>DINS</span> '26</div><div class="hdr-sub">Tournoi Annuel de Hockey Balle · 8e Édition · Granby</div></div>
+  <div class="hdr-right">Horaire du capitaine<br/>${new Date().toLocaleDateString('fr-CA',{year:'numeric',month:'long',day:'numeric'})}</div>
+</div>
+<div class="team-name">${teamName}</div>
+<span class="cat-badge cat-${genre}">${catLabel}</span>
+${played.length>0?`<div class="stats">
+  <div class="stat"><div class="stat-n">${teamGames.length}</div><div class="stat-l">Matchs</div></div>
+  <div class="stat"><div class="stat-n">${wins}</div><div class="stat-l">Victoires</div></div>
+  <div class="stat"><div class="stat-n">${losses}</div><div class="stat-l">Défaites</div></div>
+  <div class="stat"><div class="stat-n">${ties}</div><div class="stat-l">Nulles</div></div>
+  <div class="stat"><div class="stat-n">${gf}–${ga}</div><div class="stat-l">Buts</div></div>
+  <div class="stat"><div class="stat-n orange">${pts}</div><div class="stat-l">Points</div></div>
+</div>`:''}
+<table>
+<thead><tr><th>Heure</th><th>Surface</th><th>Ronde</th><th>Adversaire</th><th>Résultat</th></tr></thead>
+<tbody>`;
+
+    teamGames.forEach(g=>{
+      const sl=slots[g.idx];const sf=surfaces.find(s=>s.id===g.sid);
+      let resCls='tbd',resTxt='À jouer';
+      if(g.myScore!=null&&g.oppScore!=null){
+        if(g.myScore>g.oppScore){resCls='win';resTxt=`${g.myScore} – ${g.oppScore} ✓`;}
+        else if(g.myScore<g.oppScore){resCls='loss';resTxt=`${g.myScore} – ${g.oppScore}`;}
+        else{resCls='tie';resTxt=`${g.myScore} – ${g.oppScore} =`;}
+      }
+      html+=`<tr class="${g.isPlayoff?'playoff-row':''}">
+<td class="time">${sl?.label||'–'}</td>
+<td class="surf">${sf?.name||'–'}</td>
+<td class="rnd">${g.isPlayoff?`<span class="pbadge">${g.round}</span>`:g.round}</td>
+<td class="opp">${g.opponent||'À déterminer'}</td>
+<td class="res ${resCls}">${resTxt}</td>
+</tr>`;
+    });
+
+    html+=`</tbody></table>
+<div class="footer"><span>Tournoi Desjardins 2026 · Granby</span><span>Page officielle du capitaine — ne pas modifier</span></div>
+</div>`;
+  });
+
+  html+=`</body></html>`;
+  w.document.write(html);w.document.close();
+  setTimeout(()=>w.print(),500);
+}
 
 // EXPORT
 function openExport(){
