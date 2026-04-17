@@ -120,6 +120,15 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);col
 .pb-sep{color:rgba(255,255,255,.3);font-size:11px;}
 .pb-del{position:absolute;top:2px;right:3px;background:#00000055;border:none;color:rgba(255,255,255,.5);width:13px;height:13px;border-radius:50%;cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;opacity:0;z-index:10;}
 .pb:hover .pb-del{opacity:1;}
+
+/* NO-GAME BLOCK */
+.ngb{position:absolute;left:2px;right:2px;top:2px;bottom:2px;border-radius:4px;background:#1a1a2a;border:1px dashed #ffffff20;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:5;user-select:none;flex-direction:column;gap:2px;transition:filter .12s;}
+.ngb:hover{filter:brightness(1.3);}
+.ngb.dmatch{opacity:.2;}
+.ngb-label{font-size:11px;font-weight:600;color:#ffffff40;letter-spacing:.5px;text-align:center;}
+.ngb-del{position:absolute;top:2px;right:3px;background:#00000055;border:none;color:rgba(255,255,255,.4);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;opacity:0;z-index:10;}
+.ngb:hover .ngb-del{opacity:1;}
+
 /* GHOST */
 .ghost{position:fixed;pointer-events:none;z-index:9999;padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700;background:var(--green);color:#fff;border:2px solid var(--green-b);box-shadow:0 6px 18px #00000090;transform:rotate(2deg);opacity:.95;white-space:nowrap;display:none;}
 /* MODAL */
@@ -259,6 +268,7 @@ window.dispatchEvent(new Event('fbReady'));
   <div class="tsep"></div>
   <button class="btn bs" onclick="clearMatches()">🗑 Effacer</button>
   <button class="btn bs" onclick="autoSchedule()">⚡ Auto</button>
+  <button class="btn bs" onclick="addNoGamePrompt()" style="color:#ffffff60;border-color:#ffffff20">🚫 Pause</button>
   <button class="btn bp" onclick="pushFB()" id="pushBtn">🔥 Publier</button>
   <button class="btn bo" onclick="saveLocal()" id="saveBtn">💾 Local</button>
   <button class="btn bs" onclick="openExport()">📋 Export</button>
@@ -467,6 +477,7 @@ let surfaces=[{id:'s1',name:'Surface 1',color:SCOLS[0]},{id:'s2',name:'Surface 2
 let teams=[];
 let matches=[]; // {id,sid,idx,teamA,teamB,cat,round,scoreA,scoreB}
 let playoffs=[]; // {id,sid,idx,cat,type,teamA,teamB,scoreA,scoreB}
+let noGameBlocks=[]; // {id,sid,idx,label}
 let DS=null,editId=null;
 let _db=null,_F=null,fbReady=false;
 
@@ -494,6 +505,7 @@ window.addEventListener('fbReady',()=>{
     // Load matches (full layout)
     if(d.matches)matches=d.matches;
     if(d.playoffs)playoffs=d.playoffs;
+    if(d.noGameBlocks)noGameBlocks=d.noGameBlocks;
     rebuildGrid();updateStatus();
   });
 
@@ -537,6 +549,7 @@ async function pushFB(){
       surfaces,
       matches,
       playoffs,
+      noGameBlocks,
       startTime:document.getElementById('startTime').value,
       endTime:document.getElementById('endTime').value,
       matchDur:document.getElementById('matchDur').value,
@@ -625,7 +638,14 @@ function rebuildGrid(){
       const p=playoffs.find(x=>x.sid===s.id&&x.idx===i);
       h+=`<div class="slot" id="slot-${s.id}-${i}" data-sid="${s.id}" data-idx="${i}" ondragover="sOver(event)" ondragleave="sLeave(event)" ondrop="sDrop(event,'${s.id}',${i})">`;
 
-      if(p){
+      const ng=noGameBlocks.find(x=>x.sid===s.id&&x.idx===i);
+      if(ng){
+        h+=`<div class="ngb" id="ngb-${ng.id}" draggable="true" ondragstart="blockDragStart(event,'${ng.id}','ngb')" ondragend="blockDragEnd(event,'${ng.id}','ngb')">
+          <div class="ngb-label">🚫</div>
+          <div class="ngb-label">${ng.label||'Pause'}</div>
+          <button class="ngb-del" onclick="event.stopPropagation();delNGB('${ng.id}')">✕</button>
+        </div>`;
+      } else if(p){
         const pt=PO_TYPES.find(t=>t.t===p.type);
         const cat=CATM[p.cat];const gc=GC[cat?.g||'H'];const gbbg=GBBG[cat?.g||'H'];
         h+=`<div class="pb" id="pb-${p.id}" style="background:${pt?.bg||'#1a1a1a'};border-left:3px solid ${pt?.color};border-top:2px solid ${pt?.color}55" draggable="true" ondragstart="blockDragStart(event,'${p.id}','po')" ondragend="blockDragEnd(event,'${p.id}','po')">
@@ -701,24 +721,34 @@ function blockDragStart(e,id,kind){
   e.stopPropagation();DS={type:'move',id,kind};e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);
   const g=document.getElementById('ghost');
   if(kind==='po'){const p=playoffs.find(x=>x.id===id);const pt=PO_TYPES.find(t=>t.t===p?.type);g.textContent=`${CATM[p?.cat]?.label||''} — ${pt?.label||''}`;}
+  else if(kind==='ngb'){const n=noGameBlocks.find(x=>x.id===id);g.textContent=`🚫 ${n?.label||'Pause'}`;}
   else{const m=matches.find(x=>x.id===id);g.textContent=m?`${m.teamA} vs ${m.teamB||'?'}`:id;}
   g.style.display='block';
-  setTimeout(()=>{document.getElementById((kind==='po'?'pb-':'mb-')+id)?.classList.add('dmatch');},0);
+  setTimeout(()=>{
+    if(kind==='po')document.getElementById('pb-'+id)?.classList.add('dmatch');
+    else if(kind==='ngb')document.getElementById('ngb-'+id)?.classList.add('dmatch');
+    else document.getElementById('mb-'+id)?.classList.add('dmatch');
+  },0);
 }
 function blockDragEnd(e,id,kind){
   document.getElementById('ghost').style.display='none';
-  document.getElementById('pb-'+id)?.classList.remove('dmatch');document.getElementById('mb-'+id)?.classList.remove('dmatch');DS=null;
+  document.getElementById('pb-'+id)?.classList.remove('dmatch');
+  document.getElementById('mb-'+id)?.classList.remove('dmatch');
+  document.getElementById('ngb-'+id)?.classList.remove('dmatch');
+  DS=null;
 }
 
 // SLOT EVENTS
 function sOver(e){
   e.preventDefault();if(!DS)return;
   const sid=e.currentTarget.dataset.sid,idx=+e.currentTarget.dataset.idx;
-  const exM=matches.find(m=>m.sid===sid&&m.idx===idx);const exP=playoffs.find(p=>p.sid===sid&&p.idx===idx);
+  const exM=matches.find(m=>m.sid===sid&&m.idx===idx);
+  const exP=playoffs.find(p=>p.sid===sid&&p.idx===idx);
+  const exN=noGameBlocks.find(n=>n.sid===sid&&n.idx===idx);
   e.currentTarget.classList.remove('dE','dV','dM');
   if(DS.type==='move') e.currentTarget.classList.add('dM');
   else if(DS.type==='po_new') e.currentTarget.classList.add('dM');
-  else if(!exM&&!exP) e.currentTarget.classList.add('dE');
+  else if(!exM&&!exP&&!exN) e.currentTarget.classList.add('dE');
   else if(exM&&!exM.teamB) e.currentTarget.classList.add('dV');
   e.dataTransfer.dropEffect='copy';
 }
@@ -730,7 +760,15 @@ function sDrop(e,sid,idx){
   const exM=matches.find(m=>m.sid===sid&&m.idx===idx);const exP=playoffs.find(p=>p.sid===sid&&p.idx===idx);
 
   if(DS.type==='move'){
-    if(DS.kind==='po'){
+    if(DS.kind==='ngb'){
+      const mv=noGameBlocks.find(n=>n.id===DS.id);if(!mv)return;
+      // Swap or move
+      const exN=noGameBlocks.find(n=>n.id!==DS.id&&n.sid===sid&&n.idx===idx);
+      if(exN){[mv.sid,exN.sid]=[exN.sid,mv.sid];[mv.idx,exN.idx]=[exN.idx,mv.idx];}
+      else if(exM){const ts=mv.sid,ti=mv.idx;mv.sid=sid;mv.idx=idx;exM.sid=ts;exM.idx=ti;}
+      else if(exP){const ts=mv.sid,ti=mv.idx;mv.sid=sid;mv.idx=idx;exP.sid=ts;exP.idx=ti;}
+      else{mv.sid=sid;mv.idx=idx;}
+    } else if(DS.kind==='po'){
       const mv=playoffs.find(p=>p.id===DS.id);if(!mv)return;
       if(exP&&exP.id!==DS.id){[mv.sid,exP.sid]=[exP.sid,mv.sid];[mv.idx,exP.idx]=[exP.idx,mv.idx];}
       else if(exM){const ts=mv.sid,ti=mv.idx;mv.sid=sid;mv.idx=idx;exM.sid=ts;exM.idx=ti;}
@@ -896,102 +934,141 @@ function autoSchedule(){
   if(matches.length&&!confirm('Effacer matchs existants?'))return;
   if(teams.length<2){alert('Ajoutez 2 équipes min.');return;}
   matches=[];
+
   const slots=getSlots();
   const dur=+document.getElementById('matchDur').value||30;
   const minRestSlots=Math.ceil((settings.minRest||60)/dur);
-  const usedSlots=new Set(playoffs.map(p=>`${p.sid}-${p.idx}`));
+  const minGames=settings.minGames||2;
 
-  // Build pairs grouped by category
+  // Blocked slots (no-game blocks + playoffs)
+  const blockedSlots=new Set([
+    ...playoffs.map(p=>`${p.sid}-${p.idx}`),
+    ...noGameBlocks.map(b=>`${b.sid}-${b.idx}`)
+  ]);
+
+  // Build ALL pairs needed, respecting minGames
+  // Each team needs minGames games minimum
+  // Round-robin within category first, then add extra games if needed
   const byCat={};
   teams.forEach(t=>{(byCat[t.cat]=byCat[t.cat]||[]).push(t.name);});
+
   const pairs=[];
   Object.entries(byCat).forEach(([cat,list])=>{
+    // Round 1: standard round-robin
     for(let i=0;i<list.length;i++)
       for(let j=i+1;j<list.length;j++)
-        pairs.push({a:list[i],b:list[j],cat});
+        pairs.push({a:list[i],b:list[j],cat,priority:1});
+
+    // Extra rounds to hit minGames for each team
+    const gameCounts={};
+    list.forEach(t=>{gameCounts[t]=list.length-1;}); // games from round-robin
+    let round=2;
+    while(Math.min(...Object.values(gameCounts))<minGames&&round<=20){
+      for(let i=0;i<list.length;i++){
+        for(let j=i+1;j<list.length;j++){
+          if(gameCounts[list[i]]<minGames||gameCounts[list[j]]<minGames){
+            pairs.push({a:list[i],b:list[j],cat,priority:round});
+            gameCounts[list[i]]=(gameCounts[list[i]]||0)+1;
+            gameCounts[list[j]]=(gameCounts[list[j]]||0)+1;
+          }
+        }
+      }
+      round++;
+    }
   });
 
-  // Shuffle pairs slightly to avoid always same order
-  // (keep category grouping but shuffle within)
-  const shuffled=[];
-  const cats=[...new Set(pairs.map(p=>p.cat))];
-  cats.forEach(cat=>{
-    const cp=pairs.filter(p=>p.cat===cat);
-    shuffled.push(...cp);
-  });
+  // Track game counts and last game slot per team for rest constraint
+  const teamGameCount={};
+  const teamLastSlot={};
 
-  // Schedule with constraints
-  let attempts=0;
-  const maxAttempts=shuffled.length*surfaces.length*slots.length*2;
-  let pi=0;
+  // Schedule pairs — use a queue and retry logic
+  let remaining=[...pairs];
+  let maxPasses=slots.length*surfaces.length*2;
+  let pass=0;
 
-  while(pi<shuffled.length&&attempts<maxAttempts){
-    attempts++;
-    const pair=shuffled[pi];
+  while(remaining.length>0&&pass<maxPasses){
+    pass++;
+    const pair=remaining[0];
     let placed=false;
 
-    // Find a valid slot for this pair
     for(let si=0;si<slots.length&&!placed;si++){
       for(let ci=0;ci<surfaces.length&&!placed;ci++){
         const sid=surfaces[ci].id;
         const key=`${sid}-${si}`;
-        if(usedSlots.has(key))continue;
-        // Already occupied?
+
+        // Skip blocked slots
+        if(blockedSlots.has(key))continue;
+        // Skip already occupied slots
         if(matches.find(m=>m.sid===sid&&m.idx===si))continue;
 
         // 1. Neither team can play at same time on another surface
-        const sameTime=matches.filter(m=>m.idx===si);
-        const teamsBusy=new Set(sameTime.flatMap(m=>[m.teamA,m.teamB]));
-        if(teamsBusy.has(pair.a)||teamsBusy.has(pair.b))continue;
+        const simultaneousTeams=new Set(
+          matches.filter(m=>m.idx===si).flatMap(m=>[m.teamA,m.teamB])
+        );
+        if(simultaneousTeams.has(pair.a)||simultaneousTeams.has(pair.b))continue;
 
-        // 2. Conflict pairs — cannot play at same time
+        // 2. Conflict pair restrictions
         const conflictViolation=conflictPairs.some(cp=>{
-          const bothInvolved=(cp.a===pair.a||cp.a===pair.b||cp.b===pair.a||cp.b===pair.b);
-          if(!bothInvolved)return false;
-          // The OTHER team from conflict pair must not be playing at this time
-          const others=[cp.a,cp.b].filter(t=>t!==pair.a&&t!==pair.b);
-          return others.some(ot=>teamsBusy.has(ot));
+          const aInvolved=cp.a===pair.a||cp.a===pair.b;
+          const bInvolved=cp.b===pair.a||cp.b===pair.b;
+          if(aInvolved)return simultaneousTeams.has(cp.b);
+          if(bInvolved)return simultaneousTeams.has(cp.a);
+          return false;
         });
         if(conflictViolation)continue;
 
         // 3. Minimum rest between games
-        const lastA=matches.filter(m=>m.teamA===pair.a||m.teamB===pair.a).map(m=>m.idx).sort((a,b)=>b-a)[0];
-        const lastB=matches.filter(m=>m.teamA===pair.b||m.teamB===pair.b).map(m=>m.idx).sort((a,b)=>b-a)[0];
-        if(lastA!=null&&Math.abs(si-lastA)<minRestSlots)continue;
-        if(lastB!=null&&Math.abs(si-lastB)<minRestSlots)continue;
+        const lastA=teamLastSlot[pair.a]??-999;
+        const lastB=teamLastSlot[pair.b]??-999;
+        if((si-lastA)<minRestSlots&&lastA>=0)continue;
+        if((si-lastB)<minRestSlots&&lastB>=0)continue;
 
-        // 4. No consecutive games (if setting enabled)
+        // 4. No consecutive (if enabled)
         if(settings.noConsecutive){
-          const prevA=matches.find(m=>m.idx===si-1&&(m.teamA===pair.a||m.teamB===pair.a));
-          const prevB=matches.find(m=>m.idx===si-1&&(m.teamA===pair.b||m.teamB===pair.b));
-          if(prevA||prevB)continue;
+          if(si-lastA===1||si-lastB===1)continue;
         }
 
-        // Valid slot found!
+        // ✓ Valid slot — place the match
         matches.push({
-          id:'m'+Date.now()+'_'+pi+'_'+Math.random().toString(36).slice(2,5),
-          sid,idx:si,teamA:pair.a,teamB:pair.b,cat:pair.cat,
-          round:'Ronde 1',scoreA:null,scoreB:null
+          id:'m'+Date.now()+'_'+si+'_'+ci+'_'+Math.random().toString(36).slice(2,4),
+          sid,idx:si,
+          teamA:pair.a,teamB:pair.b,cat:pair.cat,
+          round:`Ronde ${pair.priority}`,
+          scoreA:null,scoreB:null
         });
+        teamLastSlot[pair.a]=si;
+        teamLastSlot[pair.b]=si;
+        teamGameCount[pair.a]=(teamGameCount[pair.a]||0)+1;
+        teamGameCount[pair.b]=(teamGameCount[pair.b]||0)+1;
+        remaining.shift();
         placed=true;
-        pi++;
       }
     }
 
     if(!placed){
-      // Could not place this pair — skip with warning
-      console.warn('Could not place pair:', pair.a, 'vs', pair.b);
-      pi++;
+      // Could not place — move to end of queue to try later
+      remaining.push(remaining.shift());
+      // If we've cycled through all remaining without placing any, stop
+      if(pass>maxPasses*0.8&&remaining.length===pairs.length-matches.length){
+        break;
+      }
     }
   }
 
-  const skipped=shuffled.length-matches.length;
-  let msg=`✓ ${matches.length} match${matches.length!==1?'s':''} générés.`;
-  if(skipped>0)msg+=`
+  // Report
+  const placed=matches.length;
+  const needed=pairs.length;
+  const skipped=remaining.length;
 
-⚠ ${skipped} match${skipped>1?'s':''} n'ont pas pu être placés (contraintes trop strictes ou pas assez de créneaux).`;
   rebuildGrid();
-  if(skipped>0)alert(msg);
+
+  let msg=`✓ ${placed} match${placed!==1?'s':''} générés.`;
+  if(skipped>0){
+    msg+=`\n\n⚠ ${skipped} match${skipped>1?'s':''} n'ont pas pu être placés.`;
+    msg+=`\nRaisons possibles : pas assez de créneaux, délai de repos trop long, ou surfaces insuffisantes.`;
+    msg+=`\n\nSuggestion : augmentez la plage horaire, ajoutez des surfaces, ou réduisez le délai minimum.`;
+    alert(msg);
+  }
 }
 function clearMatches(){if(confirm('Effacer tous les matchs réguliers?')){matches=[];rebuildGrid();}}
 
@@ -1107,6 +1184,18 @@ function loadSettingsLocal(){
   }catch(e){}
 }
 
+
+// NO-GAME BLOCKS
+function addNoGamePrompt(){
+  const label=prompt('Nom de la pause (ex: Dîner, Cérémonie...)','Dîner');
+  if(label===null)return;
+  // Add to first available slot or let user drag it after
+  // Just add a block to sid=first surface, idx=0 as placeholder
+  noGameBlocks.push({id:'ngb'+Date.now(),sid:surfaces[0]?.id||'s1',idx:0,label:label||'Pause'});
+  rebuildGrid();
+  alert('Bloc "'+label+'" ajouté à la première surface, slot 08h00.\nGlissez-le où vous voulez sur le calendrier.');
+}
+function delNGB(id){noGameBlocks=noGameBlocks.filter(x=>x.id!==id);rebuildGrid();}
 // ═══════════════════════════════════════════
 // RESET TOURNAMENT
 // ═══════════════════════════════════════════
@@ -1318,7 +1407,7 @@ function printSched(){
 // SAVE / LOAD
 function saveLocal(){
   try{
-    localStorage.setItem('td_s5',JSON.stringify({surfaces,teams,matches,playoffs,p:{start:document.getElementById('startTime').value,end:document.getElementById('endTime').value,dur:document.getElementById('matchDur').value}}));
+    localStorage.setItem('td_s5',JSON.stringify({surfaces,teams,matches,playoffs,noGameBlocks,p:{start:document.getElementById('startTime').value,end:document.getElementById('endTime').value,dur:document.getElementById('matchDur').value}}));
     const b=document.getElementById('saveBtn');const o=b.textContent;b.textContent='✓ Local!';setTimeout(()=>b.textContent=o,2000);
   }catch(e){alert('Erreur.');}
 }
@@ -1330,6 +1419,7 @@ function loadSaved(){
     if(d.teams?.length)teams=d.teams;
     if(d.matches?.length)matches=d.matches;
     if(d.playoffs?.length)playoffs=d.playoffs;
+    if(d.noGameBlocks?.length)noGameBlocks=d.noGameBlocks;
     if(d.p){if(d.p.start)document.getElementById('startTime').value=d.p.start;if(d.p.end)document.getElementById('endTime').value=d.p.end;if(d.p.dur)document.getElementById('matchDur').value=d.p.dur;}
   }catch(e){}
 }
