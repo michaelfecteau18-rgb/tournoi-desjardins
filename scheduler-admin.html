@@ -144,15 +144,49 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);col
 .etbl th{background:var(--navy-l);color:var(--orange);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:2px solid var(--green);}
 .etbl td{padding:6px 8px;border-bottom:1px solid #ffffff08;color:var(--gray-l);}
 .etbl td.b{color:#fff;font-weight:600;}
+
+/* NEWS PANEL */
+.panel-bg{display:none;position:fixed;inset:0;background:#000000a0;z-index:700;align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto;}
+.panel-bg.open{display:flex;}
+.panel-box{background:var(--navy-m);border:1px solid #ffffff15;border-top:3px solid var(--green-b);padding:24px;width:100%;max-width:560px;border-radius:4px;}
+.panel-box.wide{max-width:720px;}
+.panel-box h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.panel-close{background:none;border:none;color:var(--gray);font-size:15px;cursor:pointer;}
+.panel-close:hover{color:#fff;}
+.news-form{display:grid;gap:10px;margin-bottom:18px;}
+.news-form input,.news-form textarea,.news-form select{background:var(--navy-l);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;padding:8px 10px;border-radius:3px;outline:none;}
+.news-form input:focus,.news-form textarea:focus,.news-form select:focus{border-color:var(--green-b);}
+.news-form textarea{resize:vertical;min-height:70px;}
+.news-form-label{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:3px;display:block;}
+.news-list-admin{display:flex;flex-direction:column;gap:7px;max-height:280px;overflow-y:auto;}
+.news-item-admin{background:var(--navy-l);border:1px solid #ffffff0d;border-left:3px solid var(--green-b);padding:10px 12px;display:flex;gap:10px;align-items:flex-start;}
+.news-item-admin.tag-important{border-left-color:var(--red-l);}
+.news-item-admin.tag-general{border-left-color:var(--gray);}
+.ni-content{flex:1;min-width:0;}
+.ni-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ni-sub{font-size:10px;color:var(--gray);}
+.ni-del{background:none;border:1px solid #ffffff15;color:var(--gray);padding:3px 8px;border-radius:2px;font-size:10px;cursor:pointer;flex-shrink:0;}
+.ni-del:hover{border-color:var(--red-l);color:var(--red-l);}
+/* SETTINGS PANEL */
+.settings-section{margin-bottom:20px;}
+.settings-section h4{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #ffffff10;}
+.conflict-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:160px;overflow-y:auto;}
+.conflict-item{background:var(--navy-l);border:1px solid #ffffff0d;padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:12px;}
+.conflict-item select{background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:4px 7px;border-radius:3px;outline:none;flex:1;}
+.conflict-item .ci-sep{color:var(--gray);font-size:11px;font-weight:700;flex-shrink:0;}
+.conflict-item .ci-del{background:none;border:none;color:var(--gray);cursor:pointer;font-size:13px;flex-shrink:0;}
+.conflict-item .ci-del:hover{color:var(--red-l);}
+.add-conflict-btn{background:none;border:1px dashed #ffffff20;color:var(--green-b);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px;width:100%;cursor:pointer;border-radius:3px;transition:border-color .15s;}
+.add-conflict-btn:hover{border-color:var(--green-b);}
 </style>
 </head>
 <body>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,query,orderBy}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,addDoc,query,orderBy}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const cfg={apiKey:"AIzaSyDGBE023kiEjrGc4WQlSe5q3Ol-BIa_0ho",authDomain:"tournoi-desjardins.firebaseapp.com",projectId:"tournoi-desjardins",storageBucket:"tournoi-desjardins.firebasestorage.app",messagingSenderId:"160553375472",appId:"1:160553375472:web:dbeeb9811dfa9020fa5435"};
 const app=initializeApp(cfg);const db=getFirestore(app);
-window._db=db;window._F={collection,doc,onSnapshot,setDoc,deleteDoc,query,orderBy};
+window._db=db;window._F={collection,doc,onSnapshot,setDoc,deleteDoc,addDoc,query,orderBy};
 window.dispatchEvent(new Event('fbReady'));
 </script>
 
@@ -167,8 +201,11 @@ window.dispatchEvent(new Event('fbReady'));
   <button class="btn bs" onclick="openExport()">📋 Export</button>
   <button class="btn" style="background:none;color:#64b5f6;border-color:#64b5f644" onclick="openCaptainPDF()">📄 PDF Capitaines</button>
   <div class="tsep"></div>
+  <button class="btn" style="background:none;color:#a78bfa;border-color:#a78bfa44" onclick="openNewsPanel()">📣 Actualités</button>
+  <button class="btn" style="background:none;color:#67e8f9;border-color:#67e8f944" onclick="openSettings()">⚙ Paramètres</button>
+  <div class="tsep"></div>
   <button class="btn" style="background:none;color:var(--orange);border-color:#FF8C0044" onclick="resetScoresOnly()">↺ Scores</button>
-  <button class="btn" style="background:none;color:var(--red-l);border-color:#c0392b44" onclick="resetTournament()" id="resetBtn">⚠ Reset tournoi</button>
+  <button class="btn" style="background:none;color:var(--red-l);border-color:#c0392b44" onclick="resetTournament()" id="resetBtn">⚠ Reset</button>
   <div class="sbar" id="sbar"><span class="swarn">Connexion Firebase...</span></div>
 </div>
 
@@ -226,6 +263,69 @@ window.dispatchEvent(new Event('fbReady'));
 
 <div class="ga"><div class="gw" id="gw"></div></div>
 </div>
+</div>
+
+
+<!-- NEWS PANEL -->
+<div class="panel-bg" id="newsPanel">
+  <div class="panel-box">
+    <h3>📣 Actualités <button class="panel-close" onclick="closeNewsPanel()">✕</button></h3>
+    <div class="news-form">
+      <div>
+        <label class="news-form-label">Titre</label>
+        <input type="text" id="nwTitle" placeholder="Ex: Résultats de la ronde 1..." style="width:100%"/>
+      </div>
+      <div>
+        <label class="news-form-label">Message</label>
+        <textarea id="nwText" placeholder="Détails de l'actualité..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label class="news-form-label">Type</label>
+          <select id="nwTag" style="width:100%">
+            <option value="info">Info</option>
+            <option value="important">Important</option>
+            <option value="general">Général</option>
+          </select>
+        </div>
+        <div>
+          <label class="news-form-label">Date affichée</label>
+          <input type="text" id="nwDate" placeholder="Ex: 14 juin 2026" style="width:100%"/>
+        </div>
+      </div>
+      <button class="btn bp" style="justify-content:center" onclick="publishNews()">📣 Publier sur le scoreboard</button>
+    </div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:8px;">Actualités publiées</div>
+    <div class="news-list-admin" id="newsListAdmin"><div style="color:var(--gray);font-size:12px;padding:8px">Chargement...</div></div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel-bg" id="settingsPanel">
+  <div class="panel-box wide">
+    <h3>⚙ Paramètres tournoi <button class="panel-close" onclick="closeSettings()">✕</button></h3>
+
+    <div class="settings-section">
+      <h4>Règles de génération automatique</h4>
+      <div class="prow"><span class="plabel">Min. matchs par équipe</span><input class="fi pval" type="number" id="settMinGames" value="2" min="1" max="10"/></div>
+      <div class="prow"><span class="plabel">Délai minimum entre 2 matchs (minutes)</span><input class="fi pval" type="number" id="settMinRest" value="60" min="0" max="240" step="15"/></div>
+      <div class="prow" style="margin-top:6px">
+        <span class="plabel" style="font-size:11px;color:var(--gray)">Si coché, les équipes ne jouent pas deux fois de suite</span>
+        <input type="checkbox" id="settNoConsec" style="width:18px;height:18px;cursor:pointer"/>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h4>Restrictions de simultanéité</h4>
+      <div style="font-size:11px;color:var(--gray);margin-bottom:10px;line-height:1.5">Ces équipes ne peuvent pas jouer en même temps (ex: joueur dans deux catégories). L'auto-schedule et la détection de conflits en tiendront compte.</div>
+      <div class="conflict-list" id="conflictList"></div>
+      <button class="add-conflict-btn" onclick="addConflict()">+ Ajouter une restriction</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn bp" style="flex:1;justify-content:center" onclick="saveSettings()">✓ Sauvegarder</button>
+    </div>
+  </div>
 </div>
 
 <div class="ghost" id="ghost"></div>
@@ -414,7 +514,19 @@ function rebuildGrid(){
 
 function hasConflict(m){
   if(!m.teamB)return false;
-  return matches.some(o=>o.id!==m.id&&o.idx===m.idx&&o.teamB&&(o.teamA===m.teamA||o.teamA===m.teamB||o.teamB===m.teamA||o.teamB===m.teamB));
+  // Same time on different surface
+  const sameTime=matches.some(o=>o.id!==m.id&&o.idx===m.idx&&o.teamB&&(o.teamA===m.teamA||o.teamA===m.teamB||o.teamB===m.teamA||o.teamB===m.teamB));
+  if(sameTime)return true;
+  // Conflict pair playing at same time
+  const teamsBusyNow=new Set(matches.filter(o=>o.id!==m.id&&o.idx===m.idx&&o.teamB).flatMap(o=>[o.teamA,o.teamB]));
+  const conflictViolation=conflictPairs.some(cp=>{
+    const aInMatch=cp.a===m.teamA||cp.a===m.teamB;
+    const bInMatch=cp.b===m.teamA||cp.b===m.teamB;
+    if(aInMatch)return teamsBusyNow.has(cp.b);
+    if(bInMatch)return teamsBusyNow.has(cp.a);
+    return false;
+  });
+  return conflictViolation;
 }
 
 // DRAG FROM SIDEBAR — team chip
@@ -622,26 +734,224 @@ function updateStatus(){
   renderChips();
 }
 
-// AUTO SCHEDULE
+// AUTO SCHEDULE — with constraints
+let settings={minGames:2,minRest:60,noConsecutive:false};
+let conflictPairs=[]; // [{a:'Team1',b:'Team2'}] — cannot play at same time
+
 function autoSchedule(){
   if(matches.length&&!confirm('Effacer matchs existants?'))return;
   if(teams.length<2){alert('Ajoutez 2 équipes min.');return;}
-  matches=[];const slots=getSlots();
+  matches=[];
+  const slots=getSlots();
+  const dur=+document.getElementById('matchDur').value||30;
+  const minRestSlots=Math.ceil((settings.minRest||60)/dur);
   const usedSlots=new Set(playoffs.map(p=>`${p.sid}-${p.idx}`));
-  const byCat={};teams.forEach(t=>{(byCat[t.cat]=byCat[t.cat]||[]).push(t.name);});
+
+  // Build pairs grouped by category
+  const byCat={};
+  teams.forEach(t=>{(byCat[t.cat]=byCat[t.cat]||[]).push(t.name);});
   const pairs=[];
-  Object.entries(byCat).forEach(([cat,list])=>{for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++)pairs.push({a:list[i],b:list[j],cat});});
+  Object.entries(byCat).forEach(([cat,list])=>{
+    for(let i=0;i<list.length;i++)
+      for(let j=i+1;j<list.length;j++)
+        pairs.push({a:list[i],b:list[j],cat});
+  });
+
+  // Shuffle pairs slightly to avoid always same order
+  // (keep category grouping but shuffle within)
+  const shuffled=[];
+  const cats=[...new Set(pairs.map(p=>p.cat))];
+  cats.forEach(cat=>{
+    const cp=pairs.filter(p=>p.cat===cat);
+    shuffled.push(...cp);
+  });
+
+  // Schedule with constraints
+  let attempts=0;
+  const maxAttempts=shuffled.length*surfaces.length*slots.length*2;
   let pi=0;
-  for(let si=0;si<slots.length&&pi<pairs.length;si++){
-    for(let ci=0;ci<surfaces.length&&pi<pairs.length;ci++){
-      if(usedSlots.has(`${surfaces[ci].id}-${si}`))continue;
-      const p=pairs[pi++];
-      matches.push({id:'m'+Date.now()+'_'+pi,sid:surfaces[ci].id,idx:si,teamA:p.a,teamB:p.b,cat:p.cat,round:'Ronde 1',scoreA:null,scoreB:null});
+
+  while(pi<shuffled.length&&attempts<maxAttempts){
+    attempts++;
+    const pair=shuffled[pi];
+    let placed=false;
+
+    // Find a valid slot for this pair
+    for(let si=0;si<slots.length&&!placed;si++){
+      for(let ci=0;ci<surfaces.length&&!placed;ci++){
+        const sid=surfaces[ci].id;
+        const key=`${sid}-${si}`;
+        if(usedSlots.has(key))continue;
+        // Already occupied?
+        if(matches.find(m=>m.sid===sid&&m.idx===si))continue;
+
+        // 1. Neither team can play at same time on another surface
+        const sameTime=matches.filter(m=>m.idx===si);
+        const teamsBusy=new Set(sameTime.flatMap(m=>[m.teamA,m.teamB]));
+        if(teamsBusy.has(pair.a)||teamsBusy.has(pair.b))continue;
+
+        // 2. Conflict pairs — cannot play at same time
+        const conflictViolation=conflictPairs.some(cp=>{
+          const bothInvolved=(cp.a===pair.a||cp.a===pair.b||cp.b===pair.a||cp.b===pair.b);
+          if(!bothInvolved)return false;
+          // The OTHER team from conflict pair must not be playing at this time
+          const others=[cp.a,cp.b].filter(t=>t!==pair.a&&t!==pair.b);
+          return others.some(ot=>teamsBusy.has(ot));
+        });
+        if(conflictViolation)continue;
+
+        // 3. Minimum rest between games
+        const lastA=matches.filter(m=>m.teamA===pair.a||m.teamB===pair.a).map(m=>m.idx).sort((a,b)=>b-a)[0];
+        const lastB=matches.filter(m=>m.teamA===pair.b||m.teamB===pair.b).map(m=>m.idx).sort((a,b)=>b-a)[0];
+        if(lastA!=null&&Math.abs(si-lastA)<minRestSlots)continue;
+        if(lastB!=null&&Math.abs(si-lastB)<minRestSlots)continue;
+
+        // 4. No consecutive games (if setting enabled)
+        if(settings.noConsecutive){
+          const prevA=matches.find(m=>m.idx===si-1&&(m.teamA===pair.a||m.teamB===pair.a));
+          const prevB=matches.find(m=>m.idx===si-1&&(m.teamA===pair.b||m.teamB===pair.b));
+          if(prevA||prevB)continue;
+        }
+
+        // Valid slot found!
+        matches.push({
+          id:'m'+Date.now()+'_'+pi+'_'+Math.random().toString(36).slice(2,5),
+          sid,idx:si,teamA:pair.a,teamB:pair.b,cat:pair.cat,
+          round:'Ronde 1',scoreA:null,scoreB:null
+        });
+        placed=true;
+        pi++;
+      }
+    }
+
+    if(!placed){
+      // Could not place this pair — skip with warning
+      console.warn('Could not place pair:', pair.a, 'vs', pair.b);
+      pi++;
     }
   }
+
+  const skipped=shuffled.length-matches.length;
+  let msg=`✓ ${matches.length} match${matches.length!==1?'s':''} générés.`;
+  if(skipped>0)msg+=`
+
+⚠ ${skipped} match${skipped>1?'s':''} n'ont pas pu être placés (contraintes trop strictes ou pas assez de créneaux).`;
   rebuildGrid();
+  if(skipped>0)alert(msg);
 }
 function clearMatches(){if(confirm('Effacer tous les matchs réguliers?')){matches=[];rebuildGrid();}}
+
+// ═══════════════════════════════════════════
+// NEWS PANEL
+// ═══════════════════════════════════════════
+let newsCache=[];
+
+function openNewsPanel(){
+  document.getElementById('newsPanel').classList.add('open');
+  loadNewsAdmin();
+}
+function closeNewsPanel(){document.getElementById('newsPanel').classList.remove('open');}
+
+function loadNewsAdmin(){
+  if(!fbReady){document.getElementById('newsListAdmin').innerHTML='<div style="color:var(--gray);font-size:12px;padding:8px">Firebase non connecté.</div>';return;}
+  _F.onSnapshot(_F.query(_F.collection(_db,'news'),_F.orderBy('createdAt','desc')),snap=>{
+    newsCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderNewsAdmin();
+  });
+}
+
+function renderNewsAdmin(){
+  const el=document.getElementById('newsListAdmin');
+  if(!newsCache.length){el.innerHTML='<div style="color:var(--gray);font-size:12px;padding:8px">Aucune actualité publiée.</div>';return;}
+  const tagColors={info:'var(--green-b)',important:'var(--red-l)',general:'var(--gray)'};
+  el.innerHTML=newsCache.map(n=>`
+    <div class="news-item-admin tag-${n.tag||'info'}">
+      <div class="ni-content">
+        <div class="ni-title">${n.title}</div>
+        <div class="ni-sub">${n.date||''} · <span style="color:${tagColors[n.tag]||'var(--green-b)'}">${n.tag||'info'}</span></div>
+      </div>
+      <button class="ni-del" onclick="deleteNews('${n.id}')">Supprimer</button>
+    </div>`).join('');
+}
+
+async function publishNews(){
+  if(!fbReady){alert('Firebase non connecté.');return;}
+  const title=document.getElementById('nwTitle').value.trim();
+  const text=document.getElementById('nwText').value.trim();
+  const tag=document.getElementById('nwTag').value;
+  const date=document.getElementById('nwDate').value.trim()||new Date().toLocaleDateString('fr-CA',{day:'numeric',month:'short',year:'numeric'});
+  if(!title||!text){alert('Titre et message requis.');return;}
+  await _F.setDoc(_F.doc(_db,'news','n'+Date.now()),{title,text,tag,date,createdAt:Date.now()});
+  document.getElementById('nwTitle').value='';
+  document.getElementById('nwText').value='';
+  document.getElementById('nwDate').value='';
+}
+
+async function deleteNews(id){
+  if(!confirm('Supprimer cette actualité?'))return;
+  await _F.deleteDoc(_F.doc(_db,'news',id));
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS PANEL
+// ═══════════════════════════════════════════
+function openSettings(){
+  document.getElementById('settMinGames').value=settings.minGames||2;
+  document.getElementById('settMinRest').value=settings.minRest||60;
+  document.getElementById('settNoConsec').checked=settings.noConsecutive||false;
+  renderConflictList();
+  document.getElementById('settingsPanel').classList.add('open');
+}
+function closeSettings(){document.getElementById('settingsPanel').classList.remove('open');}
+
+function saveSettings(){
+  settings.minGames=+document.getElementById('settMinGames').value||2;
+  settings.minRest=+document.getElementById('settMinRest').value||60;
+  settings.noConsecutive=document.getElementById('settNoConsec').checked;
+  // Save conflict pairs from UI
+  conflictPairs=[];
+  document.querySelectorAll('.conflict-row').forEach(row=>{
+    const a=row.querySelector('.ci-selA').value;
+    const b=row.querySelector('.ci-selB').value;
+    if(a&&b&&a!==b)conflictPairs.push({a,b});
+  });
+  // Save to localStorage
+  try{localStorage.setItem('td_settings',JSON.stringify({settings,conflictPairs}));}catch(e){}
+  closeSettings();
+  updateStatus();
+  alert('✓ Paramètres sauvegardés.');
+}
+
+function addConflict(){
+  conflictPairs.push({a:'',b:''});
+  renderConflictList();
+}
+function removeConflict(idx){
+  conflictPairs.splice(idx,1);renderConflictList();
+}
+
+function renderConflictList(){
+  const allTeamNames=[...new Set(teams.map(t=>t.name))].sort();
+  const opts=allTeamNames.map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('conflictList').innerHTML=conflictPairs.length
+    ?conflictPairs.map((cp,i)=>`
+      <div class="conflict-item conflict-row">
+        <select class="ci-selA"><option value="">Équipe A...</option>${opts.replace(`value="${cp.a}"`,`value="${cp.a}" selected`)}</select>
+        <span class="ci-sep">≠</span>
+        <select class="ci-selB"><option value="">Équipe B...</option>${opts.replace(`value="${cp.b}"`,`value="${cp.b}" selected`)}</select>
+        <button class="ci-del" onclick="removeConflict(${i})">✕</button>
+      </div>`).join('')
+    :'<div style="font-size:11px;color:var(--gray);padding:4px">Aucune restriction. Cliquez + pour en ajouter.</div>';
+}
+
+function loadSettingsLocal(){
+  try{
+    const raw=localStorage.getItem('td_settings');if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.settings)settings={...settings,...d.settings};
+    if(d.conflictPairs?.length)conflictPairs=d.conflictPairs;
+  }catch(e){}
+}
 
 // ═══════════════════════════════════════════
 // RESET TOURNAMENT
@@ -866,7 +1176,7 @@ function loadSaved(){
   }catch(e){}
 }
 
-loadSaved();renderSurfaces();renderPOPanel();renderChips();rebuildGrid();
+loadSaved();loadSettingsLocal();renderSurfaces();renderPOPanel();renderChips();rebuildGrid();
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveLocal();}});
 </script>
 </body>
