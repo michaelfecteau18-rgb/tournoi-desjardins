@@ -121,6 +121,17 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);col
 .pb-del{position:absolute;top:2px;right:3px;background:#00000055;border:none;color:rgba(255,255,255,.5);width:13px;height:13px;border-radius:50%;cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;opacity:0;z-index:10;}
 .pb:hover .pb-del{opacity:1;}
 
+
+/* PAUSE PANEL IN SIDEBAR */
+.pause-chip{display:flex;align-items:center;gap:6px;padding:5px 8px;margin-bottom:4px;background:var(--navy-l);border:1px dashed #ffffff18;border-radius:3px;cursor:grab;user-select:none;transition:opacity .15s;}
+.pause-chip:active{cursor:grabbing;opacity:.6;}
+.pause-chip-icon{font-size:11px;flex-shrink:0;}
+.pause-chip-label{font-size:11px;color:var(--gray-l);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pause-chip-del{background:none;border:none;color:var(--gray);cursor:pointer;font-size:10px;opacity:0;transition:opacity .15s;}
+.pause-chip:hover .pause-chip-del{opacity:1;}
+.add-pause-btn{width:100%;padding:5px;background:none;border:1px dashed #ffffff18;color:var(--green-b);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:3px;margin-top:4px;transition:border-color .15s;}
+.add-pause-btn:hover{border-color:var(--green-b);}
+
 /* NO-GAME BLOCK */
 .ngb{position:absolute;left:2px;right:2px;top:2px;bottom:2px;border-radius:4px;background:#1a1a2a;border:1px dashed #ffffff20;display:flex;align-items:center;justify-content:center;cursor:grab;z-index:5;user-select:none;flex-direction:column;gap:2px;transition:filter .12s;}
 .ngb:hover{filter:brightness(1.3);}
@@ -268,7 +279,6 @@ window.dispatchEvent(new Event('fbReady'));
   <div class="tsep"></div>
   <button class="btn bs" onclick="clearMatches()">🗑 Effacer</button>
   <button class="btn bs" onclick="autoSchedule()">⚡ Auto</button>
-  <button class="btn bs" onclick="addNoGamePrompt()" style="color:#ffffff60;border-color:#ffffff20">🚫 Pause</button>
   <button class="btn bp" onclick="pushFB()" id="pushBtn">🔥 Publier</button>
   <button class="btn bo" onclick="saveLocal()" id="saveBtn">💾 Local</button>
   <button class="btn bs" onclick="openExport()">📋 Export</button>
@@ -317,6 +327,12 @@ window.dispatchEvent(new Event('fbReady'));
   <div class="sbsec">
     <div class="sbt">Blocs playoff <span style="font-size:8px;color:var(--gray);font-weight:400;letter-spacing:0;text-transform:none">— glissez sur calendrier</span></div>
     <div class="po-scroll"><div class="po-grid" id="poPanel"></div></div>
+  </div>
+
+  <div class="sbsec">
+    <div class="sbt">Blocs pause <span style="font-size:8px;color:var(--gray);font-weight:400;letter-spacing:0;text-transform:none">— glissez sur calendrier</span></div>
+    <div id="pausePanel"></div>
+    <button class="add-pause-btn" onclick="addPauseBlock()">+ Nouvelle pause</button>
   </div>
 
 </div>
@@ -640,7 +656,7 @@ function rebuildGrid(){
 
       const ng=noGameBlocks.find(x=>x.sid===s.id&&x.idx===i);
       if(ng){
-        h+=`<div class="ngb" id="ngb-${ng.id}" draggable="true" ondragstart="blockDragStart(event,'${ng.id}','ngb')" ondragend="blockDragEnd(event,'${ng.id}','ngb')">
+        h+=`<div class="ngb" id="ngb-${ng.id}" draggable="true" ondragstart="blockDragStart(event,'${ng.id}','ngb')" ondragend="blockDragEnd(event,'${ng.id}','ngb')" ondragover="proxyDragOver(event,'${s.id}',${i})" ondragleave="proxyDragLeave(event,'${s.id}',${i})" ondrop="proxyDrop(event,'${s.id}',${i})">
           <div class="ngb-label">🚫</div>
           <div class="ngb-label">${ng.label||'Pause'}</div>
           <button class="ngb-del" onclick="event.stopPropagation();delNGB('${ng.id}')">✕</button>
@@ -648,7 +664,7 @@ function rebuildGrid(){
       } else if(p){
         const pt=PO_TYPES.find(t=>t.t===p.type);
         const cat=CATM[p.cat];const gc=GC[cat?.g||'H'];const gbbg=GBBG[cat?.g||'H'];
-        h+=`<div class="pb" id="pb-${p.id}" style="background:${pt?.bg||'#1a1a1a'};border-left:3px solid ${pt?.color};border-top:2px solid ${pt?.color}55" draggable="true" ondragstart="blockDragStart(event,'${p.id}','po')" ondragend="blockDragEnd(event,'${p.id}','po')">
+        h+=`<div class="pb" id="pb-${p.id}" style="background:${pt?.bg||'#1a1a1a'};border-left:3px solid ${pt?.color};border-top:2px solid ${pt?.color}55" draggable="true" ondragstart="blockDragStart(event,'${p.id}','po')" ondragend="blockDragEnd(event,'${p.id}','po')" ondragover="proxyDragOver(event,'${s.id}',${i})" ondragleave="proxyDragLeave(event,'${s.id}',${i})" ondrop="proxyDrop(event,'${s.id}',${i})">
           <div class="pb-round" style="color:${pt?.color}">${pt?.label||p.type}</div>
           <span class="pb-cat" style="background:${gbbg};color:${gc}">${cat?.label||p.cat}</span>
           <input class="pb-inp" type="text" placeholder="Équipe A..." value="${esc(p.teamA||'')}" onchange="upPO('${p.id}','teamA',this.value)" onclick="event.stopPropagation()" ondragstart="event.stopPropagation()"/>
@@ -666,7 +682,7 @@ function rebuildGrid(){
         const col=GC[cat?.g||'H'];const bg=GB[cat?.g||'H'];
         const conflict=hasConflict(m);
         const sc=m.scoreA!=null?`${m.scoreA}–${m.scoreB}`:'';
-        h+=`<div class="mb${pending?' pending':''}" id="mb-${m.id}" style="background:${bg};border-left:3px solid ${col};border-top:2px solid ${pending?col+'55':col}" draggable="true" ondragstart="blockDragStart(event,'${m.id}','match')" ondragend="blockDragEnd(event,'${m.id}','match')" onclick="openMM('${m.id}')">
+        h+=`<div class="mb${pending?' pending':''}" id="mb-${m.id}" style="background:${bg};border-left:3px solid ${col};border-top:2px solid ${pending?col+'55':col}" draggable="true" ondragstart="blockDragStart(event,'${m.id}','match')" ondragend="blockDragEnd(event,'${m.id}','match')" onclick="openMM('${m.id}')" ondragover="proxyDragOver(event,'${s.id}',${i})" ondragleave="proxyDragLeave(event,'${s.id}',${i})" ondrop="proxyDrop(event,'${s.id}',${i})">
           ${conflict?`<div class="cdot"></div>`:''}
           <div class="mb-teams">${m.teamA}<br/><span class="mb-vs">vs</span><br/>${pending?`<span style="color:var(--orange);font-size:9px;font-family:'Barlow',sans-serif">⬇ 2e équipe</span>`:m.teamB}</div>
           <div class="mb-meta">${cat?.short||m.cat} · ${m.round||'R1'}</div>
@@ -1185,17 +1201,55 @@ function loadSettingsLocal(){
 }
 
 
-// NO-GAME BLOCKS
-function addNoGamePrompt(){
-  const label=prompt('Nom de la pause (ex: Dîner, Cérémonie...)','Dîner');
-  if(label===null)return;
-  // Add to first available slot or let user drag it after
-  // Just add a block to sid=first surface, idx=0 as placeholder
-  noGameBlocks.push({id:'ngb'+Date.now(),sid:surfaces[0]?.id||'s1',idx:0,label:label||'Pause'});
-  rebuildGrid();
-  alert('Bloc "'+label+'" ajouté à la première surface, slot 08h00.\nGlissez-le où vous voulez sur le calendrier.');
+// NO-GAME BLOCKS — sidebar panel
+// pauseTemplates: reusable labels that generate blocks when dragged
+let pauseTemplates=[
+  {id:'pt1',label:'Dîner'},
+  {id:'pt2',label:'Cérémonie'},
+  {id:'pt3',label:'Remise de prix'},
+];
+
+function renderPausePanel(){
+  const el=document.getElementById('pausePanel');
+  if(!el)return;
+  el.innerHTML=pauseTemplates.map(pt=>`
+    <div class="pause-chip" id="pchip-${pt.id}"
+      draggable="true"
+      ondragstart="pauseChipStart(event,'${pt.id}','${esc(pt.label)}')"
+      ondragend="pauseChipEnd(event,'${pt.id}')">
+      <span class="pause-chip-icon">🚫</span>
+      <span class="pause-chip-label">${pt.label}</span>
+      <button class="pause-chip-del" onclick="event.stopPropagation();deletePauseTemplate('${pt.id}')">✕</button>
+    </div>`).join('');
+}
+
+function addPauseBlock(){
+  const label=prompt('Nom de la pause:','Dîner');
+  if(!label||!label.trim())return;
+  pauseTemplates.push({id:'pt'+Date.now(),label:label.trim()});
+  renderPausePanel();
+}
+function deletePauseTemplate(id){
+  // Also remove any placed blocks with this template
+  pauseTemplates=pauseTemplates.filter(t=>t.id!==id);
+  renderPausePanel();
+}
+function pauseChipStart(e,templateId,label){
+  DS={type:'pause_new',templateId,label};
+  e.dataTransfer.effectAllowed='copy';
+  e.dataTransfer.setData('text/plain',label);
+  const g=document.getElementById('ghost');
+  g.textContent=`🚫 ${label}`;g.style.display='block';
+  e.dataTransfer.setDragImage(g,-8,-8);
+  document.getElementById('pchip-'+templateId)?.classList.add('dragging');
+}
+function pauseChipEnd(e,id){
+  document.getElementById('ghost').style.display='none';
+  document.getElementById('pchip-'+id)?.classList.remove('dragging');
+  DS=null;
 }
 function delNGB(id){noGameBlocks=noGameBlocks.filter(x=>x.id!==id);rebuildGrid();}
+function addNoGamePrompt(){addPauseBlock();}
 // ═══════════════════════════════════════════
 // RESET TOURNAMENT
 // ═══════════════════════════════════════════
@@ -1404,6 +1458,26 @@ function printSched(){
   w.document.write(`</tbody></table></body></html>`);w.document.close();w.print();
 }
 
+
+// DRAG PROXY — delegates drag events from blocks to parent slot
+// This fixes: position:absolute blocks covering the slot, eating drag events
+function proxyDragOver(e, sid, idx){
+  e.stopPropagation();
+  sOver({preventDefault:()=>e.preventDefault(), currentTarget:document.getElementById('slot-'+sid+'-'+idx), dataTransfer:e.dataTransfer});
+}
+function proxyDragLeave(e, sid, idx){
+  // Only leave if going outside the slot entirely
+  const slot = document.getElementById('slot-'+sid+'-'+idx);
+  if(slot && slot.contains(e.relatedTarget)) return;
+  sLeave({currentTarget:slot});
+}
+function proxyDrop(e, sid, idx){
+  e.stopPropagation();
+  e.preventDefault();
+  const slot = document.getElementById('slot-'+sid+'-'+idx);
+  if(slot) slot.classList.remove('dE','dV','dM');
+  sDrop(e, sid, idx);
+}
 // SAVE / LOAD
 function saveLocal(){
   try{
@@ -1498,7 +1572,7 @@ function closeTeamsPanel(){
   document.querySelector('.ga').style.marginRight='0';
 }
 
-loadSaved();loadSettingsLocal();renderSurfaces();renderPOPanel();renderChips();rebuildGrid();
+loadSaved();loadSettingsLocal();renderSurfaces();renderPOPanel();renderPausePanel();renderChips();rebuildGrid();
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveLocal();}});
 </script>
 </body>
