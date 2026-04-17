@@ -178,15 +178,64 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);col
 .conflict-item .ci-del:hover{color:var(--red-l);}
 .add-conflict-btn{background:none;border:1px dashed #ffffff20;color:var(--green-b);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px;width:100%;cursor:pointer;border-radius:3px;transition:border-color .15s;}
 .add-conflict-btn:hover{border-color:var(--green-b);}
+
+/* PIN LOGIN SCREEN */
+.pin-screen{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.pin-screen.hidden{display:none;}
+.pin-box{background:var(--navy-m);border:1px solid #ffffff15;border-top:4px solid var(--green-b);padding:32px 28px;width:100%;max-width:320px;border-radius:6px;}
+.pin-logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--green-b);letter-spacing:1px;margin-bottom:4px;}
+.pin-logo em{color:var(--orange);font-style:normal;}
+.pin-subtitle{font-size:12px;color:var(--gray);margin-bottom:24px;}
+.pin-label{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:8px;}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:20px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:#ffffff15;transition:background .15s;}
+.pin-dot.filled{background:var(--orange);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.pin-key{background:var(--navy-l);border:1px solid #ffffff10;border-radius:6px;padding:15px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--white);text-align:center;cursor:pointer;transition:background .1s,transform .1s;user-select:none;}
+.pin-key:active{background:var(--green);transform:scale(.95);}
+.pin-key.del{font-size:16px;color:var(--gray);}
+.pin-key.del:active{background:var(--red);}
+.pin-key.empty{background:transparent;border-color:transparent;cursor:default;}
+.pin-err{color:var(--red-l);font-size:12px;text-align:center;margin-top:10px;min-height:16px;transition:opacity .2s;}
 </style>
 </head>
 <body>
+<!-- PIN LOGIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-box">
+    <div class="pin-logo">🏒 DESJAR<em>DINS</em></div>
+    <div class="pin-subtitle">Accès administration — Tournoi 2026</div>
+    <div class="pin-label">Code PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <div class="pin-key" onclick="pinKey('1')">1</div>
+      <div class="pin-key" onclick="pinKey('2')">2</div>
+      <div class="pin-key" onclick="pinKey('3')">3</div>
+      <div class="pin-key" onclick="pinKey('4')">4</div>
+      <div class="pin-key" onclick="pinKey('5')">5</div>
+      <div class="pin-key" onclick="pinKey('6')">6</div>
+      <div class="pin-key" onclick="pinKey('7')">7</div>
+      <div class="pin-key" onclick="pinKey('8')">8</div>
+      <div class="pin-key" onclick="pinKey('9')">9</div>
+      <div class="pin-key empty"></div>
+      <div class="pin-key" onclick="pinKey('0')">0</div>
+      <div class="pin-key del" onclick="pinDel()">⌫</div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,addDoc,query,orderBy}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,doc,onSnapshot,setDoc,deleteDoc,addDoc,getDoc,query,orderBy}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const cfg={apiKey:"AIzaSyDGBE023kiEjrGc4WQlSe5q3Ol-BIa_0ho",authDomain:"tournoi-desjardins.firebaseapp.com",projectId:"tournoi-desjardins",storageBucket:"tournoi-desjardins.firebasestorage.app",messagingSenderId:"160553375472",appId:"1:160553375472:web:dbeeb9811dfa9020fa5435"};
 const app=initializeApp(cfg);const db=getFirestore(app);
-window._db=db;window._F={collection,doc,onSnapshot,setDoc,deleteDoc,addDoc,query,orderBy};
+window._db=db;window._F={collection,doc,onSnapshot,setDoc,deleteDoc,addDoc,getDoc,query,orderBy};
 window.dispatchEvent(new Event('fbReady'));
 </script>
 
@@ -1176,6 +1225,64 @@ function loadSaved(){
   }catch(e){}
 }
 
+
+// ═══════════════════════════════════════════
+// ADMIN PIN LOGIN
+// ═══════════════════════════════════════════
+const ADMIN_PIN = '1234'; // ← change this to your admin PIN
+let pinBuffer = '';
+
+function pinKey(k){
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  updatePinDots();
+  if(pinBuffer.length === 4) setTimeout(checkAdminPin, 200);
+}
+function pinDel(){
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pinErr').textContent = '';
+}
+function updatePinDots(){
+  for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled', i < pinBuffer.length);
+}
+async function checkAdminPin(){
+  // Try Firebase for dynamic PIN first, fallback to hardcoded
+  let pin = ADMIN_PIN;
+  try{
+    if(fbReady){
+      const snap = await _F.getDoc(_F.doc(_db,'config','settings'));
+      if(snap.exists() && snap.data().adminPin) pin = snap.data().adminPin;
+    }
+  }catch(e){}
+  if(pinBuffer === pin){
+    document.getElementById('pinScreen').classList.add('hidden');
+    // Store session so PIN not re-asked on refresh within same browser session
+    try{ sessionStorage.setItem('td_admin_auth','1'); }catch(e){}
+  } else {
+    document.getElementById('pinErr').textContent = 'Code incorrect — réessayez.';
+    // Shake animation
+    const box = document.querySelector('.pin-box');
+    box.style.transform = 'translateX(-8px)';
+    setTimeout(()=>box.style.transform='translateX(8px)',80);
+    setTimeout(()=>box.style.transform='translateX(-4px)',160);
+    setTimeout(()=>box.style.transform='translateX(0)',240);
+    pinBuffer = '';
+    updatePinDots();
+  }
+}
+// Check session auth on load
+function checkPinSession(){
+  try{
+    if(sessionStorage.getItem('td_admin_auth')==='1'){
+      document.getElementById('pinScreen').classList.add('hidden');
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+checkPinSession();
 loadSaved();loadSettingsLocal();renderSurfaces();renderPOPanel();renderChips();rebuildGrid();
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveLocal();}});
 </script>
