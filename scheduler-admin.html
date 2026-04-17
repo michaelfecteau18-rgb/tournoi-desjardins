@@ -472,6 +472,32 @@ let _db=null,_F=null,fbReady=false;
 
 window.addEventListener('fbReady',()=>{
   _db=window._db;_F=window._F;fbReady=true;
+
+  // ── LOAD SCHEDULER STATE FROM FIREBASE (teams, surfaces, matches, playoffs) ──
+  _F.onSnapshot(_F.doc(_db,'config','scheduler'),snap=>{
+    if(!snap.exists())return;
+    const d=snap.data();
+    // Load teams
+    if(d.teams?.length){
+      teams=d.teams;
+      renderChips();updateStatus();
+    }
+    // Load surfaces
+    if(d.surfaces?.length){
+      surfaces=d.surfaces;
+      renderSurfaces();
+    }
+    // Load horaire config
+    if(d.startTime)document.getElementById('startTime').value=d.startTime;
+    if(d.endTime)document.getElementById('endTime').value=d.endTime;
+    if(d.matchDur)document.getElementById('matchDur').value=d.matchDur;
+    // Load matches (full layout)
+    if(d.matches)matches=d.matches;
+    if(d.playoffs)playoffs=d.playoffs;
+    rebuildGrid();updateStatus();
+  });
+
+  // ── LIVE SCORE UPDATES FROM SCORERS ──
   _F.onSnapshot(_F.query(_F.collection(_db,'matches'),_F.orderBy('sortKey')),snap=>{
     snap.docs.forEach(d=>{
       const rm=d.data(),lm=matches.find(m=>m.id===d.id),lp=playoffs.find(p=>p.id===d.id);
@@ -480,6 +506,7 @@ window.addEventListener('fbReady',()=>{
     });
     rebuildGrid();updateStatus();
   });
+
   _F.onSnapshot(_F.doc(_db,'config','scoring'),snap=>{
     if(snap.exists()){const d=snap.data();
       document.getElementById('ptWin').value=d.win??2;
@@ -488,6 +515,7 @@ window.addEventListener('fbReady',()=>{
       document.getElementById('scorerPin').value=d.scorerPin??'1234';
     }
   });
+
   document.getElementById('sbar').innerHTML='<span class="sok">🔥 Firebase connecté</span>';
 });
 
@@ -498,21 +526,71 @@ async function saveScoringCfg(){
 
 async function pushFB(){
   if(!fbReady){alert('Firebase non connecté.');return;}
-  const btn=document.getElementById('pushBtn');const orig=btn.textContent;
-  btn.textContent='↑ Publication...';btn.disabled=true;
+  const btn=document.getElementById('pushBtn');
+  const orig=btn.textContent;btn.textContent='↑ Publication...';btn.disabled=true;
   try{
     const slots=getSlots();
+
+    // ── SAVE FULL SCHEDULER STATE (teams, surfaces, layout) ──
+    await _F.setDoc(_F.doc(_db,'config','scheduler'),{
+      teams,
+      surfaces,
+      matches,
+      playoffs,
+      startTime:document.getElementById('startTime').value,
+      endTime:document.getElementById('endTime').value,
+      matchDur:document.getElementById('matchDur').value,
+      updatedAt:Date.now()
+    });
+
+    // ── SAVE INDIVIDUAL MATCH DOCUMENTS (for scorer + scoreboard) ──
     for(const m of matches.filter(x=>x.teamB)){
       const sl=slots[m.idx];const sf=surfaces.find(s=>s.id===m.sid);
-      await _F.setDoc(_F.doc(_db,'matches',m.id),{teamA:m.teamA,teamB:m.teamB,cat:m.cat,round:m.round||'Ronde 1',time:sl?.label||'–',field:sf?.name||'–',scoreA:m.scoreA??null,scoreB:m.scoreB??null,playedAt:m.playedAt??null,sortKey:`${sl?.label||'00h00'}-${sf?.name||''}`,isPlayoff:false});
+      await _F.setDoc(_F.doc(_db,'matches',m.id),{
+        teamA:m.teamA,teamB:m.teamB,cat:m.cat,round:m.round||'Ronde 1',
+        time:sl?.label||'–',field:sf?.name||'–',
+        scoreA:m.scoreA??null,scoreB:m.scoreB??null,
+        playedAt:m.playedAt??null,
+        sortKey:`${sl?.label||'00h00'}-${sf?.name||''}`,
+        isPlayoff:false
+      });
     }
     for(const p of playoffs){
       const sl=slots[p.idx];const sf=surfaces.find(s=>s.id===p.sid);
       const pt=PO_TYPES.find(t=>t.t===p.type);
-      await _F.setDoc(_F.doc(_db,'matches',p.id),{teamA:p.teamA||'',teamB:p.teamB||'',cat:p.cat,round:pt?.label||p.type,time:sl?.label||'–',field:sf?.name||'–',scoreA:p.scoreA??null,scoreB:p.scoreB??null,playedAt:null,sortKey:`${sl?.label||'99h00'}-${sf?.name||''}`,isPlayoff:true,playoffType:p.type});
+      await _F.setDoc(_F.doc(_db,'matches',p.id),{
+        teamA:p.teamA||'',teamB:p.teamB||'',cat:p.cat,
+        round:pt?.label||p.type,
+        time:sl?.label||'–',field:sf?.name||'–',
+        scoreA:p.scoreA??null,scoreB:p.scoreB??null,
+        playedAt:null,
+        sortKey:`${sl?.label||'99h00'}-${sf?.name||''}`,
+        isPlayoff:true,playoffType:p.type
+      });
     }
-    btn.textContent='✓ Publié!';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2000);
-  }catch(e){btn.textContent='✗ Erreur';btn.disabled=false;console.error(e);}
+
+    // ── DELETE REMOVED MATCHES FROM FIREBASE ──
+    // Get all current IDs
+    const localIds=new Set([
+      ...matches.filter(m=>m.teamB).map(m=>m.id),
+      ...playoffs.map(p=>p.id)
+    ]);
+    // Fetch remote IDs and delete any that no longer exist locally
+    const remoteSnap=await new Promise(res=>{
+      const unsub=_F.onSnapshot(_F.query(_F.collection(_db,'matches'),_F.orderBy('sortKey')),s=>{unsub();res(s);});
+    });
+    for(const doc of remoteSnap.docs){
+      if(!localIds.has(doc.id)){
+        await _F.deleteDoc(_F.doc(_db,'matches',doc.id));
+      }
+    }
+
+    btn.textContent='✓ Publié!';
+    setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2000);
+  }catch(e){
+    btn.textContent='✗ Erreur';btn.disabled=false;
+    console.error(e);alert('Erreur Firebase: '+e.message);
+  }
 }
 
 function getSlots(){
@@ -1047,8 +1125,12 @@ async function resetTournament(){
         });
       });
     }
-    matches=[];playoffs=[];
+    matches=[];playoffs=[];teams=[];
     localStorage.removeItem('td_s5');
+    // Also clear scheduler state doc
+    if(fbReady){
+      try{await _F.setDoc(_F.doc(_db,'config','scheduler'),{teams:[],surfaces,matches:[],playoffs:[],updatedAt:Date.now()});}catch(e){}
+    }
     rebuildGrid();
     btn.textContent='✓ Reset!';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2500);
   }catch(e){btn.textContent='✗ Erreur';btn.disabled=false;alert('Erreur: '+e.message);}
