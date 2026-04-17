@@ -168,7 +168,7 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);col
 .ngb:hover .ngb-del{opacity:1;}
 
 /* GHOST */
-.ghost{position:fixed;pointer-events:none;z-index:9999;padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700;background:var(--green);color:#fff;border:2px solid var(--green-b);box-shadow:0 6px 18px #00000090;transform:rotate(2deg);opacity:.95;white-space:nowrap;display:none;}
+.ghost{position:fixed;pointer-events:none;z-index:9999;padding:5px 10px;border-radius:3px;font-size:12px;font-weight:700;background:var(--green);color:#fff;border:2px solid var(--green-b);box-shadow:0 6px 18px #00000090;transform:rotate(2deg);opacity:.95;white-space:nowrap;top:-100px;left:0;visibility:hidden;}
 /* MODAL */
 .mbg{display:none;position:fixed;inset:0;background:#00000090;z-index:600;align-items:center;justify-content:center;padding:20px;}
 .mbg.open{display:flex;}
@@ -747,18 +747,18 @@ function hasConflict(m){
 // DRAG FROM SIDEBAR — team chip
 function chipStart(e,name,cat,id){
   DS={type:'team',name,cat};e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('text/plain',name);
-  const g=document.getElementById('ghost');g.textContent=name;g.style.display='block';e.dataTransfer.setDragImage(g,-8,-8);
+  const g=document.getElementById('ghost');g.textContent=name;g.style.visibility='visible';e.dataTransfer.setDragImage(g,-8,-8);
   document.getElementById('chip-'+id)?.classList.add('dragging');
 }
-function chipEnd(e,id){document.getElementById('ghost').style.display='none';document.getElementById('chip-'+id)?.classList.remove('dragging');DS=null;}
+function chipEnd(e,id){document.getElementById('ghost').style.visibility='hidden';document.getElementById('chip-'+id)?.classList.remove('dragging');DS=null;}
 
 // DRAG FROM SIDEBAR — playoff chip
 function poChipStart(e,cat,type){
   DS={type:'po_new',cat,ptype:type};e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('text/plain',cat+type);
   const g=document.getElementById('ghost');const pt=PO_TYPES.find(t=>t.t===type);
-  g.textContent=`${CATM[cat]?.label||cat} — ${pt?.label||type}`;g.style.display='block';e.dataTransfer.setDragImage(g,-8,-8);
+  g.textContent=`${CATM[cat]?.label||cat} — ${pt?.label||type}`;g.style.visibility='visible';e.dataTransfer.setDragImage(g,-8,-8);
 }
-function poChipEnd(e){document.getElementById('ghost').style.display='none';DS=null;}
+function poChipEnd(e){document.getElementById('ghost').style.visibility='hidden';DS=null;}
 
 // DRAG — existing block on calendar
 
@@ -905,7 +905,8 @@ function sOver(e){
 function sLeave(e){e.currentTarget.classList.remove('dE','dV','dM');}
 
 function sDrop(e,sid,idx){
-  e.preventDefault();e.stopPropagation();e.currentTarget.classList.remove('dE','dV','dM');
+  e.preventDefault();e.stopPropagation();
+  console.log('sDrop called, DS=',DS?DS.type:'null', 'sid=',sid,'idx=',idx);document.querySelectorAll('.slot').forEach(s=>s.classList.remove('dE','dV','dM'));
   if(!DS)return;
   const exM=matches.find(m=>m.sid===sid&&m.idx===idx);const exP=playoffs.find(p=>p.sid===sid&&p.idx===idx);const exN=noGameBlocks.find(n=>n.sid===sid&&n.idx===idx);
 
@@ -1383,10 +1384,10 @@ function pauseChipStart(e,templateId,label){
   e.dataTransfer.effectAllowed='copy';
   e.dataTransfer.setData('text/plain',label);
   const g=document.getElementById('ghost');
-  g.textContent=`🚫 ${label}`;g.style.display='block';
+  g.textContent=`🚫 ${label}`;g.style.visibility='visible';
   e.dataTransfer.setDragImage(g,-8,-8);
 }
-function pauseChipEnd(e){document.getElementById('ghost').style.display='none';DS=null;}
+function pauseChipEnd(e){document.getElementById('ghost').style.visibility='hidden';DS=null;}
 
 function delNGB(id){noGameBlocks=noGameBlocks.filter(x=>x.id!==id);rebuildGrid();}
 function addNoGamePrompt(){addPauseBlock();}
