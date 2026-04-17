@@ -897,7 +897,7 @@ function sOver(e){
   const exN=noGameBlocks.find(n=>n.sid===sid&&n.idx===idx);
   e.currentTarget.classList.remove('dE','dV','dM');
   if(DS.type==='move') e.currentTarget.classList.add('dM');
-  else if(DS.type==='po_new') e.currentTarget.classList.add('dM');
+  else if(DS.type==='po_new'||DS.type==='pause_new') e.currentTarget.classList.add('dM');
   else if(!exM&&!exP&&!exN) e.currentTarget.classList.add('dE');
   else if(exM&&!exM.teamB) e.currentTarget.classList.add('dV');
   e.dataTransfer.dropEffect='copy';
@@ -907,7 +907,7 @@ function sLeave(e){e.currentTarget.classList.remove('dE','dV','dM');}
 function sDrop(e,sid,idx){
   e.preventDefault();e.stopPropagation();e.currentTarget.classList.remove('dE','dV','dM');
   if(!DS)return;
-  const exM=matches.find(m=>m.sid===sid&&m.idx===idx);const exP=playoffs.find(p=>p.sid===sid&&p.idx===idx);
+  const exM=matches.find(m=>m.sid===sid&&m.idx===idx);const exP=playoffs.find(p=>p.sid===sid&&p.idx===idx);const exN=noGameBlocks.find(n=>n.sid===sid&&n.idx===idx);
 
   if(DS.type==='move'){
     if(DS.kind==='ngb'){
@@ -935,6 +935,16 @@ function sDrop(e,sid,idx){
   if(DS.type==='po_new'){
     if(exP||exM){if(!confirm('Slot occupé. Remplacer?'))return;playoffs=playoffs.filter(p=>!(p.sid===sid&&p.idx===idx));matches=matches.filter(m=>!(m.sid===sid&&m.idx===idx));}
     playoffs.push({id:'p'+Date.now(),sid,idx,cat:DS.cat,type:DS.ptype,teamA:'',teamB:'',scoreA:null,scoreB:null});
+    rebuildGrid();return;
+  }
+
+  if(DS.type==='pause_new'){
+    if(exM||exP||exN){if(!confirm('Slot occupé. Remplacer?'))return;
+      noGameBlocks=noGameBlocks.filter(n=>!(n.sid===sid&&n.idx===idx));
+      matches=matches.filter(m=>!(m.sid===sid&&m.idx===idx));
+      playoffs=playoffs.filter(p=>!(p.sid===sid&&p.idx===idx));
+    }
+    noGameBlocks.push({id:'ngb'+Date.now(),sid,idx,label:DS.label||'Pause'});
     rebuildGrid();return;
   }
 
@@ -1350,7 +1360,7 @@ function renderPausePanel(){
     <div class="pause-chip" id="pchip-${pt.id}"
       draggable="true"
       ondragstart="pauseChipStart(event,'${pt.id}','${esc(pt.label)}')"
-      ondragend="pauseChipEnd(event,'${pt.id}')">
+      ondragend="pauseChipEnd(event)">
       <span class="pause-chip-icon">🚫</span>
       <span class="pause-chip-label">${pt.label}</span>
       <button class="pause-chip-del" onclick="event.stopPropagation();deletePauseTemplate('${pt.id}')">✕</button>
@@ -1369,19 +1379,15 @@ function deletePauseTemplate(id){
   renderPausePanel();
 }
 function pauseChipStart(e,templateId,label){
-  DS={type:'pause_new',templateId,label};
+  DS={type:'pause_new',label};
   e.dataTransfer.effectAllowed='copy';
   e.dataTransfer.setData('text/plain',label);
   const g=document.getElementById('ghost');
   g.textContent=`🚫 ${label}`;g.style.display='block';
   e.dataTransfer.setDragImage(g,-8,-8);
-  document.getElementById('pchip-'+templateId)?.classList.add('dragging');
 }
-function pauseChipEnd(e,id){
-  document.getElementById('ghost').style.display='none';
-  document.getElementById('pchip-'+id)?.classList.remove('dragging');
-  DS=null;
-}
+function pauseChipEnd(e){document.getElementById('ghost').style.display='none';DS=null;}
+
 function delNGB(id){noGameBlocks=noGameBlocks.filter(x=>x.id!==id);rebuildGrid();}
 function addNoGamePrompt(){addPauseBlock();}
 // ═══════════════════════════════════════════
