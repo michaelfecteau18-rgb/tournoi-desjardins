@@ -197,6 +197,20 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);col
 .pin-key.del:active{background:var(--red);}
 .pin-key.empty{background:transparent;border-color:transparent;cursor:default;}
 .pin-err{color:var(--red-l);font-size:12px;text-align:center;margin-top:10px;min-height:16px;transition:opacity .2s;}
+
+/* TEAMS FLOATING PANEL */
+.teams-panel{display:none;position:fixed;top:48px;right:0;width:300px;height:calc(100vh - 48px);background:var(--navy-m);border-left:1px solid #ffffff15;border-top:1px solid #ffffff10;z-index:80;flex-direction:column;box-shadow:-4px 0 20px #00000060;}
+.teams-panel.open{display:flex;}
+.teams-panel-header{padding:10px 13px;border-bottom:1px solid #ffffff0d;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--navy-l);}
+.teams-panel-header h4{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--green-b);text-transform:uppercase;}
+.teams-panel-close{background:none;border:none;color:var(--gray);font-size:15px;cursor:pointer;padding:2px 5px;}
+.teams-panel-close:hover{color:#fff;}
+.teams-panel-add{padding:10px 12px;border-bottom:1px solid #ffffff0d;flex-shrink:0;}
+.teams-panel-count{font-size:9px;color:var(--gray);padding:5px 13px;border-bottom:1px solid #ffffff0d;flex-shrink:0;}
+.teams-panel-scroll{flex:1;overflow-y:auto;padding:8px 10px;}
+.teams-panel-scroll::-webkit-scrollbar{width:3px;}
+.teams-panel-scroll::-webkit-scrollbar-thumb{background:#ffffff20;border-radius:2px;}
+.teams-panel-hint{font-size:9px;color:var(--gray);padding:4px 0 2px;}
 </style>
 </head>
 <body>
@@ -249,6 +263,7 @@ window.dispatchEvent(new Event('fbReady'));
   <button class="btn bo" onclick="saveLocal()" id="saveBtn">💾 Local</button>
   <button class="btn bs" onclick="openExport()">📋 Export</button>
   <button class="btn" style="background:none;color:#64b5f6;border-color:#64b5f644" onclick="openCaptainPDF()">📄 PDF Capitaines</button>
+  <button class="btn" style="background:none;color:#86efac;border-color:#86efac44" onclick="toggleTeamsPanel()" id="teamsPanelBtn">👥 Équipes <span id="teamsCount" style="background:#1a5c2a;padding:1px 6px;border-radius:8px;font-size:10px">0</span></button>
   <div class="tsep"></div>
   <button class="btn" style="background:none;color:#a78bfa;border-color:#a78bfa44" onclick="openNewsPanel()">📣 Actualités</button>
   <button class="btn" style="background:none;color:#67e8f9;border-color:#67e8f944" onclick="openSettings()">⚙ Paramètres</button>
@@ -294,21 +309,30 @@ window.dispatchEvent(new Event('fbReady'));
     <div class="po-scroll"><div class="po-grid" id="poPanel"></div></div>
   </div>
 
-  <div class="sbsec" style="flex-shrink:0">
-    <div class="sbt">Équipes</div>
-    <div class="row" style="margin-bottom:4px">
-      <input class="fi" type="text" id="newName" placeholder="Nom équipe..." style="flex:1" onkeydown="if(event.key==='Enter')addTeam()"/>
-      <select class="fi" id="newCat" style="width:96px">
-        <optgroup label="Homme"><option value="H-AMI">H Amical</option><option value="H-INT">H Interm.</option><option value="H-COM">H Compét.</option></optgroup>
-        <optgroup label="Femme"><option value="F-AMI">F Amical</option><option value="F-INT">F Interm.</option><option value="F-COM">F Compét.</option></optgroup>
-        <optgroup label="Mixte"><option value="M-AMI">M Amical</option><option value="M-INT">M Interm.</option><option value="M-COM">M Compét.</option></optgroup>
-      </select>
-      <button class="bi a" onclick="addTeam()">+</button>
-    </div>
-    <div style="font-size:8px;color:var(--gray)">1er drop = Éq. A · 2e drop même slot = Éq. B</div>
-  </div>
-  <div class="sbscroll" id="chips"></div>
 </div>
+
+<!-- TEAMS FLOATING PANEL -->
+<div class="teams-panel" id="teamsPanel">
+  <div class="teams-panel-header">
+    <h4>👥 Équipes</h4>
+    <button class="teams-panel-close" onclick="closeTeamsPanel()">✕</button>
+  </div>
+  <div class="teams-panel-add">
+    <div class="row" style="margin-bottom:6px">
+      <input class="fi" type="text" id="newName" placeholder="Nom équipe..." style="flex:1" onkeydown="if(event.key==='Enter')addTeam()"/>
+      <button class="bi a" onclick="addTeam()" style="width:28px;height:28px">+</button>
+    </div>
+    <select class="fi" id="newCat" style="width:100%">
+      <optgroup label="Homme"><option value="H-AMI">Homme Amical</option><option value="H-INT">Homme Intermédiaire</option><option value="H-COM">Homme Compétitif</option></optgroup>
+      <optgroup label="Femme"><option value="F-AMI">Femme Amical</option><option value="F-INT">Femme Intermédiaire</option><option value="F-COM">Femme Compétitif</option></optgroup>
+      <optgroup label="Mixte"><option value="M-AMI">Mixte Amical</option><option value="M-INT">Mixte Intermédiaire</option><option value="M-COM">Mixte Compétitif</option></optgroup>
+    </select>
+  </div>
+  <div class="teams-panel-count" id="teamsPanelCount">0 équipe · glissez sur le calendrier</div>
+  <div class="teams-panel-scroll" id="chips"></div>
+</div>
+
+
 
 <div class="ga"><div class="gw" id="gw"></div></div>
 </div>
@@ -749,7 +773,10 @@ function renderChips(){
     });
     h+=`</div>`;
   });
-  document.getElementById('chips').innerHTML=h||'<div style="font-size:10px;color:var(--gray);padding:4px">Aucune équipe.</div>';
+  document.getElementById('chips').innerHTML=h||'<div style="font-size:10px;color:var(--gray);padding:4px">Aucune équipe. Ajoutez des équipes ci-dessus.</div>';
+  const tc=teams.length;
+  const el=document.getElementById('teamsCount');if(el)el.textContent=tc;
+  const pc=document.getElementById('teamsPanelCount');if(pc)pc.textContent=`${tc} équipe${tc!==1?'s':''} · glissez sur le calendrier`;
 }
 function addTeam(){
   const name=document.getElementById('newName').value.trim();if(!name)return;
@@ -1283,6 +1310,22 @@ function checkPinSession(){
 }
 
 checkPinSession();
+
+// ═══════════════════════════════════════════
+// TEAMS PANEL
+// ═══════════════════════════════════════════
+function toggleTeamsPanel(){
+  const p=document.getElementById('teamsPanel');
+  const isOpen=p.classList.contains('open');
+  p.classList.toggle('open',!isOpen);
+  // Shrink grid area to make room
+  document.querySelector('.ga').style.marginRight=(!isOpen?'300px':'0');
+}
+function closeTeamsPanel(){
+  document.getElementById('teamsPanel').classList.remove('open');
+  document.querySelector('.ga').style.marginRight='0';
+}
+
 loadSaved();loadSettingsLocal();renderSurfaces();renderPOPanel();renderChips();rebuildGrid();
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveLocal();}});
 </script>
