@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Site Tournoi Desjardins 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --green:#1a5c2a;--green-l:#2a7a3a;--green-b:#3aaa50;
+  --orange:#FF8C00;--navy:#0f1923;--navy-m:#1a2535;--navy-l:#243040;
+  --white:#fff;--gray:#8a9aaa;--gray-l:#c8d4dc;--red:#e74c3c;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--navy);color:var(--white);}
+
+/* PIN */
+.pin-screen{position:fixed;inset:0;background:var(--navy);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.pin-screen.hidden{display:none;}
+.pin-box{background:var(--navy-m);border:1px solid #ffffff15;border-top:4px solid var(--green-b);padding:32px 28px;width:100%;max-width:320px;border-radius:6px;}
+.pin-logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;color:var(--green-b);letter-spacing:1px;margin-bottom:4px;}
+.pin-logo em{color:var(--orange);font-style:normal;}
+.pin-sub{font-size:12px;color:var(--gray);margin-bottom:22px;}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:18px;}
+.pin-dot{width:13px;height:13px;border-radius:50%;background:#ffffff15;transition:background .15s;}
+.pin-dot.filled{background:var(--orange);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.pin-key{background:var(--navy-l);border:1px solid #ffffff10;border-radius:5px;padding:14px;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#fff;text-align:center;cursor:pointer;transition:background .1s,transform .1s;user-select:none;}
+.pin-key:active{background:var(--green);transform:scale(.95);}
+.pin-key.del{font-size:15px;color:var(--gray);}
+.pin-key.del:active{background:var(--red);}
+.pin-key.empty{background:transparent;border-color:transparent;cursor:default;}
+.pin-err{color:var(--red);font-size:12px;text-align:center;margin-top:8px;min-height:16px;}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:220px 1fr;height:100vh;overflow:hidden;}
+.sidebar{background:#0a1118;border-right:1px solid #ffffff10;display:flex;flex-direction:column;overflow-y:auto;}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:#ffffff20;border-radius:2px;}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid #ffffff10;}
+.sb-logo p{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;color:#fff;letter-spacing:1px;}
+.sb-logo span{font-size:10px;color:var(--orange);letter-spacing:2px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:11px 16px;cursor:pointer;color:var(--gray);font-size:13px;font-weight:500;transition:background .15s,color .15s;border-left:3px solid transparent;}
+.nav-item:hover{background:#ffffff08;color:#fff;}
+.nav-item.active{background:#1a5c2a20;color:var(--green-b);border-left-color:var(--green-b);}
+.nav-icon{font-size:14px;width:18px;text-align:center;}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:2px;color:#ffffff25;text-transform:uppercase;padding:14px 16px 3px;}
+.sb-footer{margin-top:auto;padding:14px 16px;border-top:1px solid #ffffff10;}
+.fb-status{font-size:11px;display:flex;align-items:center;gap:6px;}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:var(--gray);flex-shrink:0;}
+.fb-dot.ok{background:var(--green-b);}
+
+/* CONTENT */
+.content{overflow-y:auto;background:var(--navy);}
+.content::-webkit-scrollbar{width:6px;}
+.content::-webkit-scrollbar-thumb{background:#ffffff20;border-radius:3px;}
+.page{display:none;padding:28px;}
+.page.active{display:block;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #ffffff10;}
+.page-header h2{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;text-transform:uppercase;color:#fff;}
+.page-header h2 span{color:var(--orange);}
+.toast{font-size:12px;color:var(--green-b);display:none;align-items:center;gap:5px;}
+.toast.show{display:flex;}
+
+/* CARDS */
+.card{background:var(--navy-m);border:1px solid #ffffff0d;border-radius:4px;padding:20px;margin-bottom:16px;}
+.card h3{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#fff;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #ffffff10;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;background:var(--navy-l);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;padding:8px 10px;border-radius:3px;outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green-b);}
+.field select option{background:var(--navy-m);}
+.field textarea{resize:vertical;min-height:72px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.btn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:8px 16px;border-radius:3px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--green);color:#fff;border-color:var(--green-b);}
+.btn-primary:hover{background:var(--green-l);}
+.btn-secondary{background:none;color:var(--gray-l);border-color:#ffffff22;}
+.btn-secondary:hover{border-color:var(--gray-l);color:#fff;}
+.btn-danger{background:none;color:var(--red);border-color:#e74c3c40;}
+.btn-danger:hover{background:#e74c3c18;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.actions{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap;}
+
+/* LIST ITEMS */
+.list-item{background:var(--navy-l);border:1px solid #ffffff0d;border-radius:3px;padding:10px 13px;margin-bottom:7px;display:flex;align-items:flex-start;gap:10px;}
+.list-item.green{border-left:3px solid var(--green-b);}
+.list-item.orange{border-left:3px solid var(--orange);}
+.list-item.red{border-left:3px solid var(--red);}
+.li-main{flex:1;min-width:0;}
+.li-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.li-sub{font-size:11px;color:var(--gray);}
+.li-actions{display:flex;gap:5px;flex-shrink:0;}
+
+/* PHOTO GRID */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px;}
+.photo-thumb{position:relative;aspect-ratio:4/3;border-radius:3px;overflow:hidden;background:var(--navy-l);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-thumb-del{position:absolute;top:3px;right:3px;background:#00000070;border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;}
+.photo-thumb-del:hover{background:var(--red);}
+.photo-note{font-size:11px;color:var(--gray);font-style:italic;margin-bottom:8px;line-height:1.5;}
+.year-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
+.yt{background:var(--navy-l);border:1px solid #ffffff14;color:var(--gray);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;padding:5px 12px;cursor:pointer;border-radius:3px;transition:all .15s;text-transform:uppercase;}
+.yt.active,.yt:hover{background:var(--green);color:#fff;border-color:var(--green);}
+
+/* RULES EDITOR */
+.rule-editor{background:var(--navy-l);border:1px solid #ffffff0d;border-radius:3px;padding:12px;margin-bottom:8px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;}
+.rule-num{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--green-b);opacity:.4;line-height:1;padding-top:4px;}
+.rule-fields{display:flex;flex-direction:column;gap:6px;}
+.rule-fields input{background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;padding:6px 9px;border-radius:3px;outline:none;text-transform:uppercase;}
+.rule-fields input:focus{border-color:var(--green-b);}
+.rule-fields textarea{background:var(--navy-m);border:1px solid #ffffff14;color:var(--gray-l);font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none;resize:vertical;min-height:52px;}
+.rule-fields textarea:focus{border-color:var(--green-b);}
+
+/* CATEGORIES EDITOR */
+.cat-row{background:var(--navy-l);border:1px solid #ffffff0d;padding:10px 12px;margin-bottom:6px;border-radius:3px;display:flex;gap:8px;align-items:center;}
+.cat-row-color{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.cat-row input{flex:1;background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:5px 8px;border-radius:3px;outline:none;}
+.cat-row input:focus{border-color:var(--green-b);}
+.cat-row select{background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:5px 8px;border-radius:3px;outline:none;width:80px;}
+
+/* OVERVIEW STATS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--navy-m);border:1px solid #ffffff0d;border-top:3px solid var(--green);padding:14px 16px;border-radius:3px;}
+.stat-card.orange{border-top-color:var(--orange);}
+.stat-card.blue{border-top-color:#3a7abf;}
+.stat-card.pink{border-top-color:#c850a0;}
+.stat-num{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:#fff;line-height:1;}
+.stat-label{font-size:10px;color:var(--gray);letter-spacing:.5px;margin-top:3px;}
+
+/* TAG BADGES */
+.tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:1.5px;padding:2px 7px;border-radius:2px;text-transform:uppercase;}
+.tag-info{background:#1a5c2a;color:#a0ffb0;}
+.tag-important{background:#8b1a1a;color:#ffaaaa;}
+.tag-general{background:#243040;color:#8a9aaa;}
+
+/* SPONSOR TIERS */
+.sponsor-tier-section{margin-bottom:18px;}
+.sponsor-tier-label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--gray);text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #ffffff10;}
+</style>
+</head>
+<body>
+
+<!-- FIREBASE -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,doc,onSnapshot,setDoc,addDoc,deleteDoc,query,orderBy,getDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const cfg={
+  apiKey:"AIzaSyDGBE023kiEjrGc4WQlSe5q3Ol-BIa_0ho",
+  authDomain:"tournoi-desjardins.firebaseapp.com",
+  projectId:"tournoi-desjardins",
+  storageBucket:"tournoi-desjardins.firebasestorage.app",
+  messagingSenderId:"160553375472",
+  appId:"1:160553375472:web:dbeeb9811dfa9020fa5435"
+};
+const app=initializeApp(cfg);
+const db=getFirestore(app);
+window._db=db;
+window._F={collection,doc,onSnapshot,setDoc,addDoc,deleteDoc,query,orderBy,getDoc};
+window.dispatchEvent(new Event('fbReady'));
+</script>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-box">
+    <div class="pin-logo">🏒 DESJAR<em>DINS</em></div>
+    <div class="pin-sub">Administration du site — Tournoi 2026</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <div class="pin-key" onclick="pinKey('1')">1</div><div class="pin-key" onclick="pinKey('2')">2</div><div class="pin-key" onclick="pinKey('3')">3</div>
+      <div class="pin-key" onclick="pinKey('4')">4</div><div class="pin-key" onclick="pinKey('5')">5</div><div class="pin-key" onclick="pinKey('6')">6</div>
+      <div class="pin-key" onclick="pinKey('7')">7</div><div class="pin-key" onclick="pinKey('8')">8</div><div class="pin-key" onclick="pinKey('9')">9</div>
+      <div class="pin-key empty"></div><div class="pin-key" onclick="pinKey('0')">0</div><div class="pin-key del" onclick="pinDel()">⌫</div>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appShell" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <p>ADMIN SITE</p>
+      <span>Tournoi Desjardins '26</span>
+    </div>
+    <div class="nav-section">Contenu</div>
+    <div class="nav-item active" onclick="showPage('overview')" id="nav-overview"><span class="nav-icon">📊</span>Vue d'ensemble</div>
+    <div class="nav-item" onclick="showPage('general')" id="nav-general"><span class="nav-icon">⚙</span>Infos générales</div>
+    <div class="nav-item" onclick="showPage('news')" id="nav-news"><span class="nav-icon">📣</span>Actualités</div>
+    <div class="nav-item" onclick="showPage('categories')" id="nav-categories"><span class="nav-icon">🏷</span>Catégories</div>
+    <div class="nav-item" onclick="showPage('rules')" id="nav-rules"><span class="nav-icon">📋</span>Règlements</div>
+    <div class="nav-item" onclick="showPage('photos')" id="nav-photos"><span class="nav-icon">📷</span>Photos</div>
+    <div class="nav-item" onclick="showPage('sponsors')" id="nav-sponsors"><span class="nav-icon">🤝</span>Commandites</div>
+    <div class="sb-footer">
+      <div class="fb-status"><div class="fb-dot" id="fbDot"></div><span id="fbLabel" style="font-size:11px;color:var(--gray)">Connexion...</span></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="page-header">
+        <h2>Vue d'<span>ensemble</span></h2>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="ov-news">–</div><div class="stat-label">Actualités publiées</div></div>
+        <div class="stat-card orange"><div class="stat-num" id="ov-photos">–</div><div class="stat-label">Photos en ligne</div></div>
+        <div class="stat-card blue"><div class="stat-num" id="ov-sponsors">–</div><div class="stat-label">Commanditaires</div></div>
+        <div class="stat-card pink"><div class="stat-num" id="ov-cats">–</div><div class="stat-label">Catégories actives</div></div>
+      </div>
+      <div class="card">
+        <h3>Liens rapides</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="https://michaelfecteau18-rgb.github.io/tournoi-desjardins/site_tournoi.html" target="_blank" class="btn btn-secondary">🌐 Voir le site public</a>
+          <a href="https://michaelfecteau18-rgb.github.io/tournoi-desjardins/scoreboard.html" target="_blank" class="btn btn-secondary">📊 Scoreboard</a>
+          <a href="https://michaelfecteau18-rgb.github.io/tournoi-desjardins/scheduler-admin.html" target="_blank" class="btn btn-secondary">📅 Scheduler</a>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Dernières actualités</h3>
+        <div id="ov-news-list"><div style="color:var(--gray);font-size:13px">Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- GENERAL -->
+    <div class="page" id="page-general">
+      <div class="page-header">
+        <h2>Infos <span>générales</span></h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="toast" id="toast-general">✓ Sauvegardé!</div>
+          <button class="btn btn-primary" onclick="saveGeneral()">💾 Sauvegarder</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Hero — informations principales</h3>
+        <div class="field-row">
+          <div class="field"><label>Date du tournoi</label><input type="text" id="g-date" placeholder="Ex: 14 juin 2026"/></div>
+          <div class="field"><label>Lieu</label><input type="text" id="g-lieu" placeholder="Ex: Deck du Parc Pelletier, Granby"/></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Édition</label><input type="text" id="g-edition" placeholder="8e · 2026"/></div>
+          <div class="field"><label>Format</label><input type="text" id="g-format" placeholder="3 vs 3"/></div>
+        </div>
+        <div class="field"><label>Sous-titre hero</label><input type="text" id="g-subtitle" placeholder="Format 3 contre 3 · 6 catégories · Employés seulement"/></div>
+        <div class="field"><label>Lien Microsoft Forms (inscription)</label><input type="url" id="g-forms" placeholder="https://forms.office.com/..."/></div>
+      </div>
+      <div class="card">
+        <h3>Section prix / tirage</h3>
+        <div class="field"><label>Titre du prix</label><input type="text" id="g-prize-title" placeholder="Kit de chandails"/></div>
+        <div class="field"><label>Description</label><textarea id="g-prize-desc" placeholder="Description du prix et conditions..."></textarea></div>
+        <div class="field"><label>Texte deadline</label><input type="text" id="g-prize-deadline" placeholder="Tirage réservé aux inscriptions confirmées avant la date limite"/></div>
+      </div>
+      <div class="card">
+        <h3>Section CTA final</h3>
+        <div class="field"><label>Titre</label><input type="text" id="g-cta-title" placeholder="Prêt à jouer?"/></div>
+        <div class="field"><label>Sous-titre</label><textarea id="g-cta-sub" placeholder="Formez votre équipe..."></textarea></div>
+      </div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="page" id="page-news">
+      <div class="page-header">
+        <h2>Fil d'<span>actualité</span></h2>
+        <div class="toast" id="toast-news">✓ Publié!</div>
+      </div>
+      <div class="card">
+        <h3>Nouvelle actualité</h3>
+        <div class="field-row">
+          <div class="field"><label>Titre</label><input type="text" id="n-title" placeholder="Ex: Inscriptions ouvertes!"/></div>
+          <div class="field"><label>Date affichée</label><input type="text" id="n-date" placeholder="Ex: 20 avr. 2026"/></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Type</label>
+            <select id="n-tag">
+              <option value="info">Info</option>
+              <option value="important">Important</option>
+              <option value="general">Général</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Message</label><textarea id="n-text" placeholder="Contenu de l'actualité..."></textarea></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="addNews()">📣 Publier sur le site</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Actualités publiées</h3>
+        <div id="news-list"><div style="color:var(--gray);font-size:13px">Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="page" id="page-categories">
+      <div class="page-header">
+        <h2><span>Catégories</span></h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="toast" id="toast-cats">✓ Sauvegardé!</div>
+          <button class="btn btn-primary" onclick="saveCats()">💾 Sauvegarder</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Ajouter une catégorie</h3>
+        <div class="field-row">
+          <div class="field"><label>Nom</label><input type="text" id="nc-name" placeholder="Ex: Homme Compétitif"/></div>
+          <div class="field"><label>Genre</label>
+            <select id="nc-genre">
+              <option value="H">Homme</option>
+              <option value="F">Femme</option>
+              <option value="M">Mixte</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Description</label><input type="text" id="nc-desc" placeholder="Ex: Pour les joueurs expérimentés · jeu serré"/></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="addCat()">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Catégories actives</h3>
+        <div id="cat-list"><div style="color:var(--gray);font-size:13px">Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- RULES -->
+    <div class="page" id="page-rules">
+      <div class="page-header">
+        <h2><span>Règlements</span></h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="toast" id="toast-rules">✓ Sauvegardé!</div>
+          <button class="btn btn-primary" onclick="saveRules()">💾 Sauvegarder tout</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Ajouter un règlement</h3>
+        <div class="field-row">
+          <div class="field"><label>Titre</label><input type="text" id="nr-title" placeholder="Ex: Format 3 contre 3"/></div>
+        </div>
+        <div class="field"><label>Description</label><textarea id="nr-desc" placeholder="Explication du règlement..."></textarea></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="addRule()">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Règlements</h3>
+        <div id="rules-list"><div style="color:var(--gray);font-size:13px">Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- PHOTOS -->
+    <div class="page" id="page-photos">
+      <div class="page-header">
+        <h2><span>Photos</span></h2>
+        <div class="toast" id="toast-photos">✓ Ajouté!</div>
+      </div>
+      <div class="card">
+        <h3>Ajouter des photos</h3>
+        <p class="photo-note">Héberge tes photos sur Google Photos, SharePoint ou Imgur, puis colle l'URL directe ici (lien se terminant par .jpg ou .png). Pour GitHub: uploade l'image dans ton repo et utilise l'URL raw.</p>
+        <div class="field-row">
+          <div class="field"><label>Année</label>
+            <select id="ph-year">
+              <option value="2026">2026 — 8e édition</option>
+              <option value="2025">2025 — 7e édition</option>
+              <option value="2024">2024 — 6e édition</option>
+              <option value="2023">2023 — 5e édition</option>
+            </select>
+          </div>
+          <div class="field"><label>Légende (optionnel)</label><input type="text" id="ph-caption" placeholder="Ex: Finale Homme Compétitif"/></div>
+        </div>
+        <div class="field"><label>URL de la photo</label><input type="url" id="ph-url" placeholder="https://raw.githubusercontent.com/.../photo.jpg"/></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="addPhoto()">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Photos par édition</h3>
+        <div class="year-tabs" id="photo-year-tabs"></div>
+        <div class="photo-grid" id="photo-grid"><div style="color:var(--gray);font-size:13px">Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- SPONSORS -->
+    <div class="page" id="page-sponsors">
+      <div class="page-header">
+        <h2><span>Commandites</span></h2>
+        <div class="toast" id="toast-sponsors">✓ Ajouté!</div>
+      </div>
+      <div class="card">
+        <h3>Ajouter un commanditaire</h3>
+        <div class="field-row">
+          <div class="field"><label>Nom</label><input type="text" id="sp-name" placeholder="Entreprise XYZ"/></div>
+          <div class="field"><label>Niveau</label>
+            <select id="sp-level">
+              <option value="gold">🥇 Or — Principal</option>
+              <option value="silver">🥈 Argent</option>
+              <option value="bronze">🥉 Bronze</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>URL du logo (optionnel)</label><input type="url" id="sp-logo" placeholder="https://..."/></div>
+        <div class="field"><label>Site web (optionnel)</label><input type="url" id="sp-url" placeholder="https://..."/></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="addSponsor()">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Commanditaires actifs</h3>
+        <div id="sponsor-list"><div style="color:var(--gray);font-size:13px">Chargement...</div></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+const ADMIN_PIN='1991';
+let _db=null,_F=null,fbReady=false;
+let newsCache=[],catsCache=[],rulesCache=[],photosCache=[],sponsorsCache=[],generalCache={};
+let activePhotoYear='2026';
+
+// ── PIN ──
+let pinBuf='';
+function pinKey(k){if(pinBuf.length>=4)return;pinBuf+=k;updateDots();if(pinBuf.length===4)setTimeout(checkPin,180);}
+function pinDel(){pinBuf=pinBuf.slice(0,-1);updateDots();document.getElementById('pinErr').textContent='';}
+function updateDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pinBuf.length);}
+function checkPin(){
+  if(pinBuf===ADMIN_PIN){
+    document.getElementById('pinScreen').classList.add('hidden');
+    document.getElementById('appShell').style.display='grid';
+  } else {
+    document.getElementById('pinErr').textContent='Code incorrect.';
+    const b=document.querySelector('.pin-box');
+    b.style.transform='translateX(-7px)';setTimeout(()=>b.style.transform='translateX(7px)',80);setTimeout(()=>b.style.transform='',200);
+    pinBuf='';updateDots();
+  }
+}
+
+// ── FIREBASE ──
+window.addEventListener('fbReady',()=>{
+  _db=window._db;_F=window._F;fbReady=true;
+  document.getElementById('fbDot').classList.add('ok');
+  document.getElementById('fbLabel').textContent='Firebase connecté';
+
+  // Live listeners
+  _F.onSnapshot(_F.query(_F.collection(_db,'site_news'),_F.orderBy('createdAt','desc')),snap=>{
+    newsCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderNews();renderOverview();
+  });
+  _F.onSnapshot(_F.collection(_db,'site_categories'),snap=>{
+    catsCache=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+    renderCats();renderOverview();
+  });
+  _F.onSnapshot(_F.collection(_db,'site_rules'),snap=>{
+    rulesCache=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order||0)-(b.order||0));
+    renderRules();
+  });
+  _F.onSnapshot(_F.query(_F.collection(_db,'site_photos'),_F.orderBy('createdAt','desc')),snap=>{
+    photosCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderPhotos();renderOverview();
+  });
+  _F.onSnapshot(_F.collection(_db,'site_sponsors'),snap=>{
+    sponsorsCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderSponsors();renderOverview();
+  });
+  _F.onSnapshot(_F.doc(_db,'site_config','general'),snap=>{
+    if(snap.exists()){generalCache=snap.data();loadGeneralForm();}
+  });
+});
+
+// ── NAVIGATION ──
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+}
+
+function showToast(id){
+  const el=document.getElementById(id);if(!el)return;
+  el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── OVERVIEW ──
+function renderOverview(){
+  document.getElementById('ov-news').textContent=newsCache.length;
+  document.getElementById('ov-photos').textContent=photosCache.length;
+  document.getElementById('ov-sponsors').textContent=sponsorsCache.length;
+  document.getElementById('ov-cats').textContent=catsCache.length;
+  const tagMap={info:'tag-info',important:'tag-important',general:'tag-general'};
+  const tagLabel={info:'Info',important:'Important',general:'Général'};
+  document.getElementById('ov-news-list').innerHTML=newsCache.slice(0,4).map(n=>`
+    <div class="list-item green">
+      <div class="li-main">
+        <div class="li-title">${n.title}</div>
+        <div class="li-sub">${n.date||''} · <span class="tag ${tagMap[n.tag]||'tag-info'}">${tagLabel[n.tag]||'Info'}</span></div>
+      </div>
+    </div>`).join('')||'<div style="color:var(--gray);font-size:13px">Aucune actualité.</div>';
+}
+
+// ── GENERAL ──
+function loadGeneralForm(){
+  const g=generalCache;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null)el.value=val;};
+  set('g-date',g.date);set('g-lieu',g.lieu);set('g-edition',g.edition);set('g-format',g.format);
+  set('g-subtitle',g.subtitle);set('g-forms',g.formsUrl);
+  set('g-prize-title',g.prizeTitle);set('g-prize-desc',g.prizeDesc);set('g-prize-deadline',g.prizeDeadline);
+  set('g-cta-title',g.ctaTitle);set('g-cta-sub',g.ctaSub);
+}
+async function saveGeneral(){
+  if(!fbReady)return;
+  const data={
+    date:v('g-date'),lieu:v('g-lieu'),edition:v('g-edition'),format:v('g-format'),
+    subtitle:v('g-subtitle'),formsUrl:v('g-forms'),
+    prizeTitle:v('g-prize-title'),prizeDesc:v('g-prize-desc'),prizeDeadline:v('g-prize-deadline'),
+    ctaTitle:v('g-cta-title'),ctaSub:v('g-cta-sub'),
+    updatedAt:Date.now()
+  };
+  await _F.setDoc(_F.doc(_db,'site_config','general'),data);
+  showToast('toast-general');
+}
+
+// ── NEWS ──
+function renderNews(){
+  const tagMap={info:'tag-info',important:'tag-important',general:'tag-general'};
+  const tagLabel={info:'Info',important:'Important',general:'Général'};
+  document.getElementById('news-list').innerHTML=newsCache.length
+    ?newsCache.map(n=>`
+      <div class="list-item ${n.tag==='important'?'orange':n.tag==='general'?'':'green'}">
+        <div class="li-main">
+          <div class="li-title">${n.title}</div>
+          <div class="li-sub">${n.date||''} · <span class="tag ${tagMap[n.tag]||'tag-info'}">${tagLabel[n.tag]||'Info'}</span></div>
+          <div style="font-size:11px;color:var(--gray);margin-top:3px">${n.text||''}</div>
+        </div>
+        <div class="li-actions">
+          <button class="btn btn-danger btn-sm" onclick="deleteNews('${n.id}')">✕</button>
+        </div>
+      </div>`).join('')
+    :'<div style="color:var(--gray);font-size:13px">Aucune actualité publiée.</div>';
+}
+async function addNews(){
+  if(!fbReady)return;
+  const title=v('n-title'),text=v('n-text'),tag=v('n-tag');
+  const date=v('n-date')||new Date().toLocaleDateString('fr-CA',{day:'numeric',month:'short',year:'numeric'});
+  if(!title||!text){alert('Titre et message requis.');return;}
+  await _F.addDoc(_F.collection(_db,'site_news'),{title,text,tag,date,createdAt:Date.now()});
+  ['n-title','n-text','n-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showToast('toast-news');
+}
+async function deleteNews(id){
+  if(!confirm('Supprimer cette actualité?'))return;
+  await _F.deleteDoc(_F.doc(_db,'site_news',id));
+}
+
+// ── CATEGORIES ──
+function renderCats(){
+  document.getElementById('cat-list').innerHTML=catsCache.length
+    ?catsCache.map(c=>{
+      const gc=c.genre==='F'?'#c850a0':c.genre==='M'?'#3a7abf':'#3aaa50';
+      return`<div class="cat-row">
+        <div class="cat-row-color" style="background:${gc}"></div>
+        <input type="text" value="${c.name||''}" onchange="updateCat('${c.id}','name',this.value)" placeholder="Nom"/>
+        <input type="text" value="${c.description||''}" onchange="updateCat('${c.id}','description',this.value)" placeholder="Description" style="flex:2"/>
+        <select onchange="updateCat('${c.id}','genre',this.value)" style="width:80px;background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:5px;border-radius:3px;outline:none;">
+          <option value="H" ${c.genre==='H'?'selected':''}>Homme</option>
+          <option value="F" ${c.genre==='F'?'selected':''}>Femme</option>
+          <option value="M" ${c.genre==='M'?'selected':''}>Mixte</option>
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="deleteCat('${c.id}')">✕</button>
+      </div>`;
+    }).join('')
+    :'<div style="color:var(--gray);font-size:13px">Aucune catégorie.</div>';
+}
+function updateCat(id,field,val){const c=catsCache.find(x=>x.id===id);if(c)c[field]=val;}
+async function saveCats(){
+  if(!fbReady)return;
+  for(const c of catsCache){
+    await _F.setDoc(_F.doc(_db,'site_categories',c.id),{name:c.name,description:c.description,genre:c.genre,order:c.order||0});
+  }
+  showToast('toast-cats');
+}
+async function addCat(){
+  if(!fbReady)return;
+  const name=v('nc-name'),genre=v('nc-genre'),description=v('nc-desc');
+  if(!name)return;
+  await _F.addDoc(_F.collection(_db,'site_categories'),{name,genre,description,order:catsCache.length,createdAt:Date.now()});
+  ['nc-name','nc-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+async function deleteCat(id){
+  if(!confirm('Supprimer cette catégorie?'))return;
+  await _F.deleteDoc(_F.doc(_db,'site_categories',id));
+}
+
+// ── RULES ──
+function renderRules(){
+  document.getElementById('rules-list').innerHTML=rulesCache.length
+    ?rulesCache.map((r,i)=>`
+      <div class="rule-editor">
+        <div class="rule-num">${String(i+1).padStart(2,'0')}</div>
+        <div class="rule-fields">
+          <input type="text" value="${r.title||''}" placeholder="Titre du règlement" onchange="updateRule('${r.id}','title',this.value)"/>
+          <textarea placeholder="Description..." onchange="updateRule('${r.id}','description',this.value)">${r.description||''}</textarea>
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-top:4px" onclick="deleteRule('${r.id}')">✕</button>
+      </div>`).join('')
+    :'<div style="color:var(--gray);font-size:13px">Aucun règlement.</div>';
+}
+function updateRule(id,field,val){const r=rulesCache.find(x=>x.id===id);if(r)r[field]=val;}
+async function saveRules(){
+  if(!fbReady)return;
+  for(const r of rulesCache){
+    await _F.setDoc(_F.doc(_db,'site_rules',r.id),{title:r.title,description:r.description,order:r.order||0});
+  }
+  showToast('toast-rules');
+}
+async function addRule(){
+  if(!fbReady)return;
+  const title=v('nr-title'),description=v('nr-desc');
+  if(!title)return;
+  await _F.addDoc(_F.collection(_db,'site_rules'),{title,description,order:rulesCache.length,createdAt:Date.now()});
+  ['nr-title','nr-desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+}
+async function deleteRule(id){
+  if(!confirm('Supprimer ce règlement?'))return;
+  await _F.deleteDoc(_F.doc(_db,'site_rules',id));
+}
+
+// ── PHOTOS ──
+function renderPhotos(){
+  const years=[...new Set(photosCache.map(p=>p.year))].sort((a,b)=>b-a);
+  if(!years.includes(activePhotoYear)&&years.length)activePhotoYear=years[0];
+  if(!years.includes('2026'))years.unshift('2026');
+  document.getElementById('photo-year-tabs').innerHTML=years.map(y=>
+    `<div class="yt ${y===activePhotoYear?'active':''}" onclick="setPhotoYear('${y}')">${y}</div>`
+  ).join('');
+  const filtered=photosCache.filter(p=>p.year===activePhotoYear);
+  document.getElementById('photo-grid').innerHTML=filtered.length
+    ?filtered.map(p=>`
+      <div class="photo-thumb">
+        <img src="${p.url}" alt="${p.caption||''}" onerror="this.parentElement.style.background='#243040'"/>
+        <button class="photo-thumb-del" onclick="deletePhoto('${p.id}')">✕</button>
+      </div>`).join('')
+    :'<div style="color:var(--gray);font-size:13px;padding:8px">Aucune photo pour cette édition.</div>';
+}
+function setPhotoYear(y){activePhotoYear=y;renderPhotos();}
+async function addPhoto(){
+  if(!fbReady)return;
+  const url=v('ph-url'),year=v('ph-year'),caption=v('ph-caption');
+  if(!url){alert('URL requise.');return;}
+  await _F.addDoc(_F.collection(_db,'site_photos'),{url,year,caption,createdAt:Date.now()});
+  ['ph-url','ph-caption'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showToast('toast-photos');
+}
+async function deletePhoto(id){
+  if(!confirm('Supprimer cette photo?'))return;
+  await _F.deleteDoc(_F.doc(_db,'site_photos',id));
+}
+
+// ── SPONSORS ──
+function renderSponsors(){
+  const levels=['gold','silver','bronze'];
+  const levelLabel={'gold':'🥇 Or','silver':'🥈 Argent','bronze':'🥉 Bronze'};
+  document.getElementById('sponsor-list').innerHTML=levels.map(lvl=>{
+    const items=sponsorsCache.filter(s=>s.level===lvl);
+    if(!items.length&&lvl!=='gold')return`<div class="sponsor-tier-section"><div class="sponsor-tier-label">${levelLabel[lvl]}</div><div style="color:var(--gray);font-size:13px;padding:4px 0">Aucun commanditaire.</div></div>`;
+    return`<div class="sponsor-tier-section">
+      <div class="sponsor-tier-label">${levelLabel[lvl]}</div>
+      ${items.map(s=>`<div class="list-item orange">
+        <div class="li-main">
+          <div class="li-title">${s.name}</div>
+          ${s.logo?`<div class="li-sub">Logo: <a href="${s.logo}" target="_blank" style="color:var(--green-b)">${s.logo.slice(0,50)}...</a></div>`:''}
+        </div>
+        <div class="li-actions"><button class="btn btn-danger btn-sm" onclick="deleteSponsor('${s.id}')">✕</button></div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+async function addSponsor(){
+  if(!fbReady)return;
+  const name=v('sp-name'),level=v('sp-level'),logo=v('sp-logo'),url=v('sp-url');
+  if(!name){alert('Nom requis.');return;}
+  await _F.addDoc(_F.collection(_db,'site_sponsors'),{name,level,logo,url,createdAt:Date.now()});
+  ['sp-name','sp-logo','sp-url'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showToast('toast-sponsors');
+}
+async function deleteSponsor(id){
+  if(!confirm('Supprimer ce commanditaire?'))return;
+  await _F.deleteDoc(_F.doc(_db,'site_sponsors',id));
+}
+
+// ── UTILS ──
+function v(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+</script>
+</body>
+</html>
