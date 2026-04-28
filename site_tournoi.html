@@ -374,7 +374,7 @@ window.dispatchEvent(new Event('firebaseReady'));
     <div class="meta-item"><div class="meta-label">Édition</div><div class="meta-value" id="heroEdition">8e · 2026</div></div>
     <div class="meta-item"><div class="meta-label">Format</div><div class="meta-value" id="heroFormat">3 vs 3</div></div>
   </div>
-  <a href="LIEN_FORMS" id="heroInscriptionBtn" class="btn-hero">S'inscrire maintenant</a>
+  <a href="https://forms.office.com/r/GnLaD4yHJu" id="heroInscriptionBtn" class="btn-hero">S'inscrire maintenant</a>
   <div class="hero-scroll"><span>Défiler</span><div class="scroll-arr"></div></div>
 </section>
 
@@ -474,7 +474,7 @@ window.dispatchEvent(new Event('firebaseReady'));
           </select>
         </div>
         <div class="form-group"><label>Note (optionnel)</label><textarea id="resNote" placeholder="Ex : disponible AM seulement..."></textarea></div>
-        <button class="btn-submit" onclick="submitReserviste()">Envoyer ma demande</button>
+        <a href="https://forms.office.com/r/KUKbbHM0QV" target="_blank" class="btn-submit" style="display:block;text-align:center;text-decoration:none">Remplir le formulaire réserviste →</a>
         <div class="form-success" id="resSuccess">✓ Demande envoyée! Tu seras contacté si une place se libère.</div>
       </div>
     </div>
@@ -523,7 +523,7 @@ window.dispatchEvent(new Event('firebaseReady'));
     <p class="cta-eyebrow">8e édition · Places limitées</p>
     <h2 class="cta-title" id="ctaTitle">Prêt à jouer?</h2>
     <p class="cta-sub" id="ctaSub">Formez votre équipe, choisissez votre catégorie et réservez votre place.<br/>Payez avant la date limite pour courir la chance de gagner le kit de chandails!</p>
-    <a href="LIEN_FORMS" id="ctaBtn" class="btn-cta">Je m'inscris maintenant</a>
+    <a href="https://forms.office.com/r/GnLaD4yHJu" id="ctaBtn" class="btn-cta">Je m'inscris maintenant</a>
   </div>
 </section>
 
@@ -1234,17 +1234,7 @@ async function loadReservistes(){
     });
   } catch(e){ reservistes=[]; }
 }
-async function submitReserviste(){
-  const nom=document.getElementById('resNom').value.trim();
-  const email=document.getElementById('resEmail').value.trim();
-  const cat=document.getElementById('resCat').value;
-  if(!nom||!email||!cat){alert('Remplissez tous les champs obligatoires.');return;}
-  const data={nom,email,caisse:document.getElementById('resCaisse').value,cat,note:document.getElementById('resNote').value,createdAt:Date.now()};
-  try { await F.addDoc(F.collection(db,'reservistes'),data); } catch(e){ console.warn(e); }
-  document.getElementById('resSuccess').style.display='block';
-  ['resNom','resEmail','resCaisse','resNote'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('resCat').value='';
-}
+function submitReserviste(){ window.open('https://forms.office.com/r/KUKbbHM0QV','_blank'); }
 function renderAdminReservistes(){
   const el=document.getElementById('adminReservisteList');
   if(!el) return;

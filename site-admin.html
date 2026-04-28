@@ -250,7 +250,7 @@ window.dispatchEvent(new Event('fbReady'));
           <div class="field"><label>Format</label><input type="text" id="g-format" placeholder="3 vs 3"/></div>
         </div>
         <div class="field"><label>Sous-titre hero</label><input type="text" id="g-subtitle" placeholder="Format 3 contre 3 · 6 catégories · Employés seulement"/></div>
-        <div class="field"><label>Lien Microsoft Forms (inscription)</label><input type="url" id="g-forms" placeholder="https://forms.office.com/..."/></div>
+        <div class="field"><label>Lien Microsoft Forms (inscription)</label><input type="url" id="g-forms" placeholder="https://forms.office.com/r/GnLaD4yHJu" value="https://forms.office.com/r/GnLaD4yHJu"/></div>
       </div>
       <div class="card">
         <h3>Section prix / tirage</h3>
@@ -593,19 +593,51 @@ async function deleteCat(id){
 
 // ── RULES ──
 function renderRules(){
-  document.getElementById('rules-list').innerHTML=rulesCache.length
-    ?rulesCache.map((r,i)=>`
-      <div class="rule-editor">
-        <div class="rule-num">${String(i+1).padStart(2,'0')}</div>
-        <div class="rule-fields">
-          <input type="text" value="${r.title||''}" placeholder="Titre du règlement" onchange="updateRule('${r.id}','title',this.value)"/>
-          <textarea placeholder="Description..." onchange="updateRule('${r.id}','description',this.value)">${r.description||''}</textarea>
+  const el = document.getElementById('rules-list');
+  if(!rulesCache.length){
+    el.innerHTML='<div style="color:var(--gray);font-size:13px">Aucun règlement. Ajoutez-en un ci-dessus.</div>';
+    return;
+  }
+  // Build HTML then set textarea values manually (avoids HTML entity issues)
+  el.innerHTML = rulesCache.map((r,i)=>`
+    <div class="rule-editor" id="re-${r.id}">
+      <div class="rule-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="rule-fields" style="flex:1">
+        <input type="text" id="rt-${r.id}" placeholder="Titre du règlement" style="font-weight:700"/>
+        <textarea id="rd-${r.id}" placeholder="Description du règlement..."></textarea>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn btn-primary btn-sm" onclick="saveOneRule('${r.id}')">💾 Sauvegarder</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRule('${r.id}')">✕ Supprimer</button>
         </div>
-        <button class="btn btn-danger btn-sm" style="margin-top:4px" onclick="deleteRule('${r.id}')">✕</button>
-      </div>`).join('')
-    :'<div style="color:var(--gray);font-size:13px">Aucun règlement.</div>';
+      </div>
+    </div>`).join('');
+
+  // Set values after render (textarea needs .value not innerHTML)
+  rulesCache.forEach(r=>{
+    const ti = document.getElementById('rt-'+r.id);
+    const di = document.getElementById('rd-'+r.id);
+    if(ti) ti.value = r.title||'';
+    if(di) di.value = r.description||'';
+    // Live update cache on change
+    if(ti) ti.oninput = ()=>{ r.title = ti.value; };
+    if(di) di.oninput = ()=>{ r.description = di.value; };
+  });
 }
 function updateRule(id,field,val){const r=rulesCache.find(x=>x.id===id);if(r)r[field]=val;}
+async function saveOneRule(id){
+  if(!fbReady)return;
+  const r=rulesCache.find(x=>x.id===id);
+  if(!r)return;
+  // Read latest values from inputs directly
+  const ti=document.getElementById('rt-'+id);
+  const di=document.getElementById('rd-'+id);
+  if(ti) r.title=ti.value;
+  if(di) r.description=di.value;
+  await _F.setDoc(_F.doc(_db,'site_rules',id),{title:r.title,description:r.description,order:r.order||0});
+  // Visual feedback on the button
+  const btn=document.querySelector(`#re-${id} .btn-primary`);
+  if(btn){const orig=btn.textContent;btn.textContent='✓ Sauvegardé!';btn.style.background='var(--green-b)';setTimeout(()=>{btn.textContent=orig;btn.style.background='';},2000);}
+}
 async function saveRules(){
   if(!fbReady)return;
   for(const r of rulesCache){
