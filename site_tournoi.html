@@ -450,33 +450,19 @@ window.dispatchEvent(new Event('firebaseReady'));
   <div class="section-inner">
     <p class="section-label">Pas d'équipe?</p>
     <h2 class="section-title">S'inscrire comme <em>réserviste</em></h2>
-    <div class="reserviste-wrap">
-      <div class="reserviste-info">
-        <p>Tu veux jouer mais tu n'as pas d'équipe complète? Inscris-toi comme réserviste — tu seras ajouté à la liste et contacté si une équipe a besoin d'un joueur.</p>
-        <ul>
-          <li>Précise ta catégorie de jeu préférée</li>
-          <li>Tu peux indiquer plusieurs catégories</li>
-          <li>Les équipes pourront te contacter directement</li>
-          <li>Aucun frais pour s'inscrire comme réserviste</li>
-        </ul>
-      </div>
-      <div class="res-form">
-        <h3>Formulaire réserviste</h3>
-        <div class="form-group"><label>Prénom et nom</label><input type="text" id="resNom" placeholder="Jean Tremblay"/></div>
-        <div class="form-group"><label>Courriel</label><input type="email" id="resEmail" placeholder="jean@desjardins.com"/></div>
-        <div class="form-group"><label>Caisse / succursale</label><input type="text" id="resCaisse" placeholder="Caisse Desjardins de Granby"/></div>
-        <div class="form-group"><label>Catégorie souhaitée</label>
-          <select id="resCat">
-            <option value="">Choisir...</option>
-            <option>Homme Amical</option><option>Homme Intermédiaire</option><option>Homme Compétitif</option>
-            <option>Femme Amical</option><option>Mixte Amical</option><option>Mixte Compétitif</option>
-            <option>Flexible — peu importe</option>
-          </select>
-        </div>
-        <div class="form-group"><label>Note (optionnel)</label><textarea id="resNote" placeholder="Ex : disponible AM seulement..."></textarea></div>
-        <a href="https://forms.office.com/r/KUKbbHM0QV" target="_blank" class="btn-submit" style="display:block;text-align:center;text-decoration:none">Remplir le formulaire réserviste →</a>
-        <div class="form-success" id="resSuccess">✓ Demande envoyée! Tu seras contacté si une place se libère.</div>
-      </div>
+    <div style="max-width:600px">
+      <p style="font-size:15px;color:var(--gray);line-height:1.8;margin-bottom:12px">
+        Tu veux jouer mais tu n'as pas d'équipe complète? Inscris-toi comme réserviste — tu seras ajouté à la liste et contacté si une équipe a besoin d'un joueur.
+      </p>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:28px">
+        <li style="display:flex;gap:10px;font-size:14px;color:var(--gray)"><span style="color:var(--green);font-weight:700">→</span>Précise ta catégorie de jeu préférée</li>
+        <li style="display:flex;gap:10px;font-size:14px;color:var(--gray)"><span style="color:var(--green);font-weight:700">→</span>Les équipes pourront te contacter directement</li>
+        <li style="display:flex;gap:10px;font-size:14px;color:var(--gray)"><span style="color:var(--green);font-weight:700">→</span>Aucun frais pour s'inscrire comme réserviste</li>
+      </ul>
+      <a href="https://forms.office.com/r/KUKbbHM0QV" target="_blank"
+        style="display:inline-block;padding:16px 44px;background:var(--green);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;border:2px solid var(--green-b);clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%)">
+        S'inscrire comme réserviste →
+      </a>
     </div>
   </div>
 </section>
