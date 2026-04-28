@@ -880,7 +880,7 @@ function loadSiteContent(){
     const el=document.getElementById('sponsorsAll');if(!el)return;
     if(!sponsors.length){el.innerHTML='';return;}
     el.innerHTML=sponsors.map(s=>s.logo
-      ?`<a href="${s.url||'#'}" target="_blank" style="display:inline-block"><img src="${s.logo}" alt="${s.name}" class="sponsor-logo-real" title="${s.name}" style="height:80px;width:auto;object-fit:contain;background:#fff;padding:10px;border-radius:8px;border:1px solid #e0e8e0;"/></a>`
+      ?`<a href="${s.url||'#'}" target="_blank" style="display:inline-block"><img src="${s.logo}" alt="${s.name}" class="sponsor-logo-real" title="${s.name}" style="height:160px;width:auto;object-fit:contain;background:#fff;padding:14px;border-radius:8px;border:1px solid #e0e8e0;"/></a>`
       :`<div style="background:#fff;border:1px solid #e0e8e0;border-radius:8px;padding:14px 22px;font-size:14px;font-weight:600;color:#333">${s.name}</div>`
     ).join('');
   });
