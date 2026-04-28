@@ -175,6 +175,8 @@ tbody td.score.tbd{color:var(--gray);font-size:12px;font-style:italic;}
 .sponsor-logo-ph.silver{width:130px;height:52px;}
 .sponsor-logo-ph.bronze{width:104px;height:44px;font-size:10px;}
 .sponsor-logo-real{width:auto;height:60px;object-fit:contain;filter:grayscale(30%);border-radius:4px;background:#fff;padding:8px;}
+
+.sponsor-logos-flat{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:24px;}
 .sponsors-cta{margin-top:28px;padding:22px;background:#eef0eb;border:1px solid #ffffff0d;border-left:3px solid var(--orange);display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
 .sponsors-cta p{font-size:13px;color:#555e58;flex:1;line-height:1.6;}
 .btn-sponsor{display:inline-block;padding:10px 24px;background:transparent;color:var(--orange);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;text-decoration:none;border:1px solid var(--orange);clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);transition:background .2s,color .2s;white-space:nowrap;}
@@ -486,13 +488,7 @@ window.dispatchEvent(new Event('firebaseReady'));
   <div class="section-inner">
     <p class="section-label">Merci à nos partenaires</p>
     <h2 class="section-title"><em>Commandites</em></h2>
-    <div id="sponsorsDisplay">
-      <div class="sponsors-tiers">
-        <div class="sponsor-tier"><h4>🥇 Or</h4><div class="sponsor-logos" id="sponsorsGold"><div class="sponsor-logo-ph gold">Logo partenaire</div></div></div>
-        <div class="sponsor-tier"><h4>🥈 Argent</h4><div class="sponsor-logos" id="sponsorsSilver"><div class="sponsor-logo-ph silver">Logo</div></div></div>
-        <div class="sponsor-tier"><h4>🥉 Bronze</h4><div class="sponsor-logos" id="sponsorsBronze"><div class="sponsor-logo-ph bronze">Logo</div></div></div>
-      </div>
-    </div>
+    <div class="sponsor-logos-flat" id="sponsorsAll"></div>
     <div class="sponsors-cta">
       <p>Votre entreprise veut être associée au tournoi? Plusieurs niveaux de visibilité disponibles.</p>
       <a href="mailto:tournoi@desjardins.com" class="btn-sponsor">Devenir commanditaire</a>
@@ -878,17 +874,15 @@ function loadSiteContent(){
     renderPhotoYear(activeYear);
   });
 
-  // Sponsors
+  // Sponsors — flat grid, no tier labels
   F.onSnapshot(F.collection(db,'site_sponsors'),snap=>{
     const sponsors=snap.docs.map(d=>({id:d.id,...d.data()}));
-    ['Gold','Silver','Bronze'].forEach(lvl=>{
-      const el=document.getElementById('sponsors'+lvl);if(!el)return;
-      const filtered=sponsors.filter(s=>s.level===lvl.toLowerCase());
-      if(!filtered.length){el.innerHTML=`<div class="sponsor-logo-ph ${lvl.toLowerCase()}">+ Ajouter</div>`;return;}
-      el.innerHTML=filtered.map(s=>s.logo
-        ?`<a href="${s.url||'#'}" target="_blank"><img src="${s.logo}" alt="${s.name}" class="sponsor-logo-real" title="${s.name}"/></a>`
-        :`<div class="sponsor-logo-ph ${lvl.toLowerCase()}">${s.name}</div>`).join('');
-    });
+    const el=document.getElementById('sponsorsAll');if(!el)return;
+    if(!sponsors.length){el.innerHTML='';return;}
+    el.innerHTML=sponsors.map(s=>s.logo
+      ?`<a href="${s.url||'#'}" target="_blank" style="display:inline-block"><img src="${s.logo}" alt="${s.name}" class="sponsor-logo-real" title="${s.name}" style="height:80px;width:auto;object-fit:contain;background:#fff;padding:10px;border-radius:8px;border:1px solid #e0e8e0;"/></a>`
+      :`<div style="background:#fff;border:1px solid #e0e8e0;border-radius:8px;padding:14px 22px;font-size:14px;font-weight:600;color:#333">${s.name}</div>`
+    ).join('');
   });
 }
 

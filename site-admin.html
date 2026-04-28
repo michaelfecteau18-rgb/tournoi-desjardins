@@ -396,13 +396,7 @@ window.dispatchEvent(new Event('fbReady'));
         <h3>Ajouter un commanditaire</h3>
         <div class="field-row">
           <div class="field"><label>Nom</label><input type="text" id="sp-name" placeholder="Entreprise XYZ"/></div>
-          <div class="field"><label>Niveau</label>
-            <select id="sp-level">
-              <option value="gold">🥇 Or — Principal</option>
-              <option value="silver">🥈 Argent</option>
-              <option value="bronze">🥉 Bronze</option>
-            </select>
-          </div>
+
         </div>
         <div class="field"><label>URL du logo (optionnel)</label><input type="url" id="sp-logo" placeholder="https://..."/></div>
         <div class="field"><label>Site web (optionnel)</label><input type="url" id="sp-url" placeholder="https://..."/></div>
@@ -664,26 +658,20 @@ async function deletePhoto(id){
 
 // ── SPONSORS ──
 function renderSponsors(){
-  const levels=['gold','silver','bronze'];
-  const levelLabel={'gold':'🥇 Or','silver':'🥈 Argent','bronze':'🥉 Bronze'};
-  document.getElementById('sponsor-list').innerHTML=levels.map(lvl=>{
-    const items=sponsorsCache.filter(s=>s.level===lvl);
-    if(!items.length&&lvl!=='gold')return`<div class="sponsor-tier-section"><div class="sponsor-tier-label">${levelLabel[lvl]}</div><div style="color:var(--gray);font-size:13px;padding:4px 0">Aucun commanditaire.</div></div>`;
-    return`<div class="sponsor-tier-section">
-      <div class="sponsor-tier-label">${levelLabel[lvl]}</div>
-      ${items.map(s=>`<div class="list-item orange">
+  document.getElementById('sponsor-list').innerHTML=sponsorsCache.length
+    ?sponsorsCache.map(s=>`
+      <div class="list-item orange">
         <div class="li-main">
           <div class="li-title">${s.name}</div>
-          ${s.logo?`<div class="li-sub">Logo: <a href="${s.logo}" target="_blank" style="color:var(--green-b)">${s.logo.slice(0,50)}...</a></div>`:''}
+          <div class="li-sub">${s.level||''} ${s.logo?'· <a href="'+s.logo+'" target="_blank" style="color:var(--green-b)">Voir logo</a>':''}</div>
         </div>
         <div class="li-actions"><button class="btn btn-danger btn-sm" onclick="deleteSponsor('${s.id}')">✕</button></div>
-      </div>`).join('')}
-    </div>`;
-  }).join('');
+      </div>`).join('')
+    :'<div style="color:var(--gray);font-size:13px">Aucun commanditaire.</div>';
 }
 async function addSponsor(){
   if(!fbReady)return;
-  const name=v('sp-name'),level=v('sp-level'),logo=v('sp-logo'),url=v('sp-url');
+  const name=v('sp-name'),level='',logo=v('sp-logo'),url=v('sp-url');
   if(!name){alert('Nom requis.');return;}
   await _F.addDoc(_F.collection(_db,'site_sponsors'),{name,level,logo,url,createdAt:Date.now()});
   ['sp-name','sp-logo','sp-url'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
