@@ -524,19 +524,63 @@ async function saveGeneral(){
 function renderNews(){
   const tagMap={info:'tag-info',important:'tag-important',general:'tag-general'};
   const tagLabel={info:'Info',important:'Important',general:'Général'};
-  document.getElementById('news-list').innerHTML=newsCache.length
-    ?newsCache.map(n=>`
-      <div class="list-item ${n.tag==='important'?'orange':n.tag==='general'?'':'green'}">
-        <div class="li-main">
-          <div class="li-title">${n.title}</div>
-          <div class="li-sub">${n.date||''} · <span class="tag ${tagMap[n.tag]||'tag-info'}">${tagLabel[n.tag]||'Info'}</span></div>
-          <div style="font-size:11px;color:var(--gray);margin-top:3px">${n.text||''}</div>
+  const el=document.getElementById('news-list');
+  if(!newsCache.length){el.innerHTML='<div style="color:var(--gray);font-size:13px">Aucune actualité publiée.</div>';return;}
+  el.innerHTML=newsCache.map(n=>`
+    <div class="list-item ${n.tag==='important'?'orange':n.tag==='general'?'':'green'}" id="ni-${n.id}">
+      <div class="li-main">
+        <div class="li-title">${n.title}</div>
+        <div class="li-sub">${n.date||''} · <span class="tag ${tagMap[n.tag]||'tag-info'}">${tagLabel[n.tag]||'Info'}</span></div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">${n.text||''}</div>
+        <div id="ned-${n.id}" style="display:none;margin-top:10px;display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+            <input id="net-${n.id}" type="text" style="background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none" placeholder="Titre"/>
+            <input id="ned2-${n.id}" type="text" style="background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none" placeholder="Date"/>
+          </div>
+          <textarea id="netx-${n.id}" style="width:100%;background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none;resize:vertical;min-height:60px;margin-bottom:6px" placeholder="Texte..."></textarea>
+          <select id="netag-${n.id}" style="background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none;margin-bottom:6px">
+            <option value="info">Info</option><option value="important">Important</option><option value="general">Général</option>
+          </select>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-primary btn-sm" onclick="saveNewsEdit('${n.id}')">💾 Sauvegarder</button>
+            <button class="btn btn-secondary btn-sm" onclick="toggleNewsEdit('${n.id}')">Annuler</button>
+          </div>
         </div>
-        <div class="li-actions">
-          <button class="btn btn-danger btn-sm" onclick="deleteNews('${n.id}')">✕</button>
-        </div>
-      </div>`).join('')
-    :'<div style="color:var(--gray);font-size:13px">Aucune actualité publiée.</div>';
+      </div>
+      <div class="li-actions" style="flex-direction:column;gap:5px">
+        <button class="btn btn-secondary btn-sm" onclick="toggleNewsEdit('${n.id}')">✏ Modifier</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteNews('${n.id}')">✕ Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  // Fill edit fields after render
+  newsCache.forEach(n=>{
+    const t=document.getElementById('net-'+n.id);
+    const d=document.getElementById('ned2-'+n.id);
+    const tx=document.getElementById('netx-'+n.id);
+    const tg=document.getElementById('netag-'+n.id);
+    if(t)t.value=n.title||'';
+    if(d)d.value=n.date||'';
+    if(tx)tx.value=n.text||'';
+    if(tg)tg.value=n.tag||'info';
+  });
+}
+
+function toggleNewsEdit(id){
+  const ed=document.getElementById('ned-'+id);
+  if(!ed)return;
+  const show=ed.style.display==='none'||ed.style.display==='';
+  ed.style.display=show?'block':'none';
+}
+async function saveNewsEdit(id){
+  if(!fbReady)return;
+  const t=document.getElementById('net-'+id)?.value.trim();
+  const d=document.getElementById('ned2-'+id)?.value.trim();
+  const tx=document.getElementById('netx-'+id)?.value.trim();
+  const tg=document.getElementById('netag-'+id)?.value||'info';
+  if(!t||!tx){alert('Titre et texte requis.');return;}
+  await _F.setDoc(_F.doc(_db,'site_news',id),{title:t,date:d,text:tx,tag:tg,createdAt:newsCache.find(n=>n.id===id)?.createdAt||Date.now()});
+  showToast('toast-news');
 }
 async function addNews(){
   if(!fbReady)return;
@@ -566,12 +610,19 @@ function renderCats(){
           <option value="F" ${c.genre==='F'?'selected':''}>Femme</option>
           <option value="M" ${c.genre==='M'?'selected':''}>Mixte</option>
         </select>
+        <button class="btn btn-primary btn-sm" onclick="saveOneCat('${c.id}')">💾</button>
         <button class="btn btn-danger btn-sm" onclick="deleteCat('${c.id}')">✕</button>
       </div>`;
     }).join('')
     :'<div style="color:var(--gray);font-size:13px">Aucune catégorie.</div>';
 }
 function updateCat(id,field,val){const c=catsCache.find(x=>x.id===id);if(c)c[field]=val;}
+async function saveOneCat(id){
+  if(!fbReady)return;
+  const c=catsCache.find(x=>x.id===id);if(!c)return;
+  await _F.setDoc(_F.doc(_db,'site_categories',id),{name:c.name,description:c.description,genre:c.genre,order:c.order||0});
+  showToast('toast-cats');
+}
 async function saveCats(){
   if(!fbReady)return;
   for(const c of catsCache){
@@ -668,9 +719,12 @@ function renderPhotos(){
   const filtered=photosCache.filter(p=>p.year===activePhotoYear);
   document.getElementById('photo-grid').innerHTML=filtered.length
     ?filtered.map(p=>`
-      <div class="photo-thumb">
-        <img src="${p.url}" alt="${p.caption||''}" onerror="this.parentElement.style.background='#243040'"/>
-        <button class="photo-thumb-del" onclick="deletePhoto('${p.id}')">✕</button>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div class="photo-thumb">
+          <img src="${p.url}" alt="${p.caption||''}" onerror="this.parentElement.style.background='#243040'"/>
+          <button class="photo-thumb-del" onclick="deletePhoto('${p.id}')">✕</button>
+        </div>
+        <div style="font-size:10px;color:var(--gray);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">${p.caption||'Sans légende'}</div>
       </div>`).join('')
     :'<div style="color:var(--gray);font-size:13px;padding:8px">Aucune photo pour cette édition.</div>';
 }
@@ -690,16 +744,42 @@ async function deletePhoto(id){
 
 // ── SPONSORS ──
 function renderSponsors(){
-  document.getElementById('sponsor-list').innerHTML=sponsorsCache.length
-    ?sponsorsCache.map(s=>`
-      <div class="list-item orange">
-        <div class="li-main">
-          <div class="li-title">${s.name}</div>
-          <div class="li-sub">${s.level||''} ${s.logo?'· <a href="'+s.logo+'" target="_blank" style="color:var(--green-b)">Voir logo</a>':''}</div>
+  const el=document.getElementById('sponsor-list');
+  if(!sponsorsCache.length){el.innerHTML='<div style="color:var(--gray);font-size:13px">Aucun commanditaire.</div>';return;}
+  el.innerHTML=sponsorsCache.map(s=>`
+    <div class="list-item orange" id="spi-${s.id}">
+      <div class="li-main">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:5px">
+          <input id="spn-${s.id}" type="text" style="background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;padding:6px 9px;border-radius:3px;outline:none" placeholder="Nom du commanditaire"/>
+          <input id="spw-${s.id}" type="url" style="background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none" placeholder="URL site web"/>
         </div>
-        <div class="li-actions"><button class="btn btn-danger btn-sm" onclick="deleteSponsor('${s.id}')">✕</button></div>
-      </div>`).join('')
-    :'<div style="color:var(--gray);font-size:13px">Aucun commanditaire.</div>';
+        <input id="spl-${s.id}" type="url" style="width:100%;background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:6px 9px;border-radius:3px;outline:none" placeholder="URL du logo"/>
+        ${s.logo?`<div style="margin-top:6px"><img src="${s.logo}" style="height:40px;object-fit:contain;background:#fff;padding:4px;border-radius:4px" onerror="this.style.display='none'"/></div>`:''}
+      </div>
+      <div class="li-actions" style="flex-direction:column;gap:5px">
+        <button class="btn btn-primary btn-sm" onclick="saveOneSponsor('${s.id}')">💾</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSponsor('${s.id}')">✕</button>
+      </div>
+    </div>`).join('');
+
+  // Fill values
+  sponsorsCache.forEach(s=>{
+    const n=document.getElementById('spn-'+s.id);
+    const l=document.getElementById('spl-'+s.id);
+    const w=document.getElementById('spw-'+s.id);
+    if(n)n.value=s.name||'';
+    if(l)l.value=s.logo||'';
+    if(w)w.value=s.url||'';
+  });
+}
+async function saveOneSponsor(id){
+  if(!fbReady)return;
+  const s=sponsorsCache.find(x=>x.id===id);if(!s)return;
+  const n=document.getElementById('spn-'+id)?.value.trim();
+  const l=document.getElementById('spl-'+id)?.value.trim();
+  const w=document.getElementById('spw-'+id)?.value.trim();
+  await _F.setDoc(_F.doc(_db,'site_sponsors',id),{name:n||s.name,logo:l||'',url:w||'',level:s.level||'',createdAt:s.createdAt||Date.now()});
+  showToast('toast-sponsors');
 }
 async function addSponsor(){
   if(!fbReady)return;
