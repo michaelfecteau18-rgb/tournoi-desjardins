@@ -335,6 +335,7 @@ window.dispatchEvent(new Event('fbReady'));
         <h2><span>Règlements</span></h2>
         <div style="display:flex;gap:8px;align-items:center">
           <div class="toast" id="toast-rules">✓ Sauvegardé!</div>
+          <button class="btn btn-secondary" onclick="seedRules()" id="seedBtn" title="Importer les règlements par défaut si Firebase est vide">⬆ Importer défauts</button>
           <button class="btn btn-primary" onclick="saveRules()">💾 Sauvegarder tout</button>
         </div>
       </div>
@@ -688,6 +689,31 @@ async function saveOneRule(id){
   // Visual feedback on the button
   const btn=document.querySelector(`#re-${id} .btn-primary`);
   if(btn){const orig=btn.textContent;btn.textContent='✓ Sauvegardé!';btn.style.background='var(--green-b)';setTimeout(()=>{btn.textContent=orig;btn.style.background='';},2000);}
+}
+
+// ── SEED DEFAULT RULES ──
+async function seedRules(){
+  if(!fbReady)return;
+  if(rulesCache.length>0){
+    if(!confirm('Des règlements existent déjà. Ajouter quand même les règlements par défaut?'))return;
+  }
+  const defaults=[
+    {title:'Format 3 contre 3',description:'Chaque équipe aligne 3 joueurs. Remplaçants permis selon la catégorie.',order:0},
+    {title:'Employés Desjardins',description:'Réservé aux employés du réseau Desjardins de la région de Granby.',order:1},
+    {title:'Esprit sportif',description:'Fairplay obligatoire. L'arbitrage est final. Conduite non sportive = pénalité.',order:2},
+    {title:'Équipement',description:'Équipement de base recommandé. Patins interdits — hockey balle sur deck.',order:3},
+    {title:'Inscription par équipe',description:'Inscription complétée par équipe. Catégorie choisie à l'inscription. Aucun transfert.',order:4},
+    {title:'Ponctualité',description:'Prêts 10 min avant le match. Retard de plus de 5 min = forfait automatique.',order:5},
+    {title:'Durée des matchs',description:'Rondes : 2×10 min. Demi-finales et finales : 2×15 min. Pas de prolongation en ronde.',order:6},
+    {title:'Pointage',description:'Victoire = 2 pts · Nulle = 1 pt · Défaite = 0 pt. Buts utilisés comme bris d'égalité.',order:7},
+    {title:'Paiement',description:'Paiement complet avant la date limite pour confirmer et participer au tirage.',order:8},
+  ];
+  const btn=document.getElementById('seedBtn');
+  const orig=btn.textContent;btn.textContent='⏳ Import...';btn.disabled=true;
+  for(const r of defaults){
+    await _F.addDoc(_F.collection(_db,'site_rules'),{...r,createdAt:Date.now()});
+  }
+  btn.textContent='✓ Importé!';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2000);
 }
 async function saveRules(){
   if(!fbReady)return;
