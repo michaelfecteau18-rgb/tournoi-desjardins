@@ -303,6 +303,7 @@ window.dispatchEvent(new Event('fbReady'));
         <h2><span>Catégories</span></h2>
         <div style="display:flex;gap:8px;align-items:center">
           <div class="toast" id="toast-cats">✓ Sauvegardé!</div>
+          <button class="btn btn-secondary" onclick="seedCats()" id="seedCatsBtn">⬆ Importer défauts</button>
           <button class="btn btn-primary" onclick="saveCats()">💾 Sauvegarder</button>
         </div>
       </div>
@@ -599,30 +600,71 @@ async function deleteNews(id){
 
 // ── CATEGORIES ──
 function renderCats(){
-  document.getElementById('cat-list').innerHTML=catsCache.length
-    ?catsCache.map(c=>{
-      const gc=c.genre==='F'?'#c850a0':c.genre==='M'?'#3a7abf':'#3aaa50';
-      return`<div class="cat-row">
-        <div class="cat-row-color" style="background:${gc}"></div>
-        <input type="text" value="${c.name||''}" onchange="updateCat('${c.id}','name',this.value)" placeholder="Nom"/>
-        <input type="text" value="${c.description||''}" onchange="updateCat('${c.id}','description',this.value)" placeholder="Description" style="flex:2"/>
-        <select onchange="updateCat('${c.id}','genre',this.value)" style="width:80px;background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:5px;border-radius:3px;outline:none;">
-          <option value="H" ${c.genre==='H'?'selected':''}>Homme</option>
-          <option value="F" ${c.genre==='F'?'selected':''}>Femme</option>
-          <option value="M" ${c.genre==='M'?'selected':''}>Mixte</option>
-        </select>
-        <button class="btn btn-primary btn-sm" onclick="saveOneCat('${c.id}')">💾</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteCat('${c.id}')">✕</button>
-      </div>`;
-    }).join('')
-    :'<div style="color:var(--gray);font-size:13px">Aucune catégorie.</div>';
+  const el=document.getElementById('cat-list');
+  if(!catsCache.length){el.innerHTML='<div style="color:var(--gray);font-size:13px">Aucune catégorie. Cliquez "Importer défauts" ou ajoutez-en une.</div>';return;}
+  el.innerHTML=catsCache.map(c=>{
+    const gc=c.genre==='F'?'#c850a0':c.genre==='M'?'#3a7abf':'#3aaa50';
+    return`<div class="cat-row" id="cr-${c.id}">
+      <div class="cat-row-color" style="background:${gc}"></div>
+      <input type="text" id="cn-${c.id}" placeholder="Nom" style="flex:1"/>
+      <input type="text" id="cd-${c.id}" placeholder="Description" style="flex:2"/>
+      <select id="cg-${c.id}" style="width:80px;background:var(--navy-m);border:1px solid #ffffff14;color:#fff;font-family:'Barlow',sans-serif;font-size:12px;padding:5px;border-radius:3px;outline:none;">
+        <option value="H">Homme</option>
+        <option value="F">Femme</option>
+        <option value="M">Mixte</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="saveOneCat('${c.id}')">💾</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCat('${c.id}')">✕</button>
+    </div>`;
+  }).join('');
+
+  // Fill values after render
+  catsCache.forEach(c=>{
+    const n=document.getElementById('cn-'+c.id);
+    const d=document.getElementById('cd-'+c.id);
+    const g=document.getElementById('cg-'+c.id);
+    if(n) n.value=c.name||'';
+    if(d) d.value=c.description||'';
+    if(g) g.value=c.genre||'H';
+    if(n) n.oninput=()=>{c.name=n.value;};
+    if(d) d.oninput=()=>{c.description=d.value;};
+  });
 }
 function updateCat(id,field,val){const c=catsCache.find(x=>x.id===id);if(c)c[field]=val;}
 async function saveOneCat(id){
   if(!fbReady)return;
   const c=catsCache.find(x=>x.id===id);if(!c)return;
-  await _F.setDoc(_F.doc(_db,'site_categories',id),{name:c.name,description:c.description,genre:c.genre,order:c.order||0});
+  const n=document.getElementById('cn-'+id)?.value.trim();
+  const d=document.getElementById('cd-'+id)?.value.trim();
+  const g=document.getElementById('cg-'+id)?.value||'H';
+  await _F.setDoc(_F.doc(_db,'site_categories',id),{name:n||c.name,description:d||c.description,genre:g,order:c.order||0});
+  const btn=document.querySelector(`#cr-${id} .btn-primary`);
+  if(btn){const o=btn.textContent;btn.textContent='✓';btn.style.background='var(--green-b)';setTimeout(()=>{btn.textContent=o;btn.style.background='';},1500);}
   showToast('toast-cats');
+}
+
+async function seedCats(){
+  if(!fbReady)return;
+  if(catsCache.length>0){
+    if(!confirm('Des catégories existent déjà. Ajouter quand même les catégories par défaut?'))return;
+  }
+  const defaults=[
+    {name:'Homme Amical',      genre:'H', description:'Niveau récréatif · ambiance décontractée',      order:0},
+    {name:'Homme Intermédiaire',genre:'H', description:'Niveau modéré · bonne intensité de jeu',        order:1},
+    {name:'Homme Compétitif',  genre:'H', description:'Joueurs expérimentés · jeu serré',               order:2},
+    {name:'Femme Amical',      genre:'F', description:'Ouvert à toutes · ambiance inclusive',            order:3},
+    {name:'Femme Intermédiaire',genre:'F', description:'Niveau modéré · bonne intensité de jeu',        order:4},
+    {name:'Femme Compétitif',  genre:'F', description:'Joueuses expérimentées · jeu serré',             order:5},
+    {name:'Mixte Amical',      genre:'M', description:"Hommes et femmes · esprit d'équipe",             order:6},
+    {name:'Mixte Intermédiaire',genre:'M', description:'Niveau modéré · mix hommes et femmes',          order:7},
+    {name:'Mixte Compétitif',  genre:'M', description:'Mixte intense · pour gagner',                    order:8},
+  ];
+  const btn=document.getElementById('seedCatsBtn');
+  const orig=btn.textContent;btn.textContent='⏳ Import...';btn.disabled=true;
+  for(const c of defaults){
+    await _F.addDoc(_F.collection(_db,'site_categories'),{...c,createdAt:Date.now()});
+  }
+  btn.textContent='✓ Importé!';setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2000);
 }
 async function saveCats(){
   if(!fbReady)return;
